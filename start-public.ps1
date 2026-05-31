@@ -38,8 +38,11 @@ function Update-SeoUrls($BaseUrl) {
 "@ | Set-Content (Join-Path $ProjectRoot "public\sitemap.xml") -NoNewline
 }
 
+$npm = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+if (-not $npm) { $npm = "npm.cmd" }
+
 Write-Host "Starting Maths Tutor server..."
-$server = Start-Process -FilePath "npm" -ArgumentList "run","prod" -WorkingDirectory $ProjectRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "server.log") -RedirectStandardError (Join-Path $LogDir "server.err")
+$server = Start-Process -FilePath $npm -ArgumentList "run","prod" -WorkingDirectory $ProjectRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "server.log") -RedirectStandardError (Join-Path $LogDir "server.err")
 
 Start-Sleep -Seconds 3
 

@@ -31,6 +31,21 @@
     <!-- Sitemap Link -->
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
 
+    <!-- Structured data for Google -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "AI Math Tutor",
+        "description": "Step-by-step math solver, quiz generator, and AI tutor chat.",
+        "url": "https://pack-workplace-mia-calculators.trycloudflare.com/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "author": { "@type": "Person", "name": "Michael Shoniwa" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+    </script>
+
     <link rel="stylesheet" href="styles.css">
     <!-- Include Marked.js for parsing markdown in AI responses -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -167,6 +182,10 @@
         <div class="spinner"></div>
         <p>Thinking...</p>
     </div>
+
+    <footer class="site-footer">
+        <p>Created by <strong>Michael Shoniwa</strong> · AI Math Tutor</p>
+    </footer>
 
     <script src="app.js"></script>
 </body>
