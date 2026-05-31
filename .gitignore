@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.*
+scratch/
+test_output.txt
+.run/
+*.log

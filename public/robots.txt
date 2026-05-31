@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pack-workplace-mia-calculators.trycloudflare.com/sitemap.xml
