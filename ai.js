@@ -3,7 +3,7 @@ const { Ollama } = require('ollama');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { VertexAI } = require('@google-cloud/vertexai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCEAfSErFMzeN_87GJErNjo2gYVvdQO37M';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
