@@ -1,6 +1,6 @@
-Public URL: https://pack-workplace-mia-calculators.trycloudflare.com/
-Sitemap:   https://pack-workplace-mia-calculators.trycloudflare.com/sitemap.xml
-Health:    https://pack-workplace-mia-calculators.trycloudflare.com/api/health
+Public URL: https://mathify-zlqz.onrender.com/
+Sitemap:   https://mathify-zlqz.onrender.com/sitemap.xml
+Health:    https://mathify-zlqz.onrender.com/api/health
 
 Double-click "Open Math Tutor.bat" to open the site in your browser.
 Site stays online while your PC is running (autostart enabled on login).
