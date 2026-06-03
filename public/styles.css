@@ -23,7 +23,7 @@
 body {
     background-color: var(--bg-main);
     color: var(--text-primary);
-    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height to prevent mobile browser UI from covering the bottom */
     overflow: hidden;
     background-image: 
         radial-gradient(circle at 15% 50%, rgba(255, 0, 255, 0.12), transparent 25%),
@@ -121,11 +121,14 @@ body {
     flex-grow: 1;
     position: relative;
     padding: 2rem;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Prevents flex children from expanding past screen height */
 }
 
 .view {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     display: none;
     flex-direction: column;
     animation: fadeIn 0.4s ease forwards;
