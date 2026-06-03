@@ -1,6 +1,8 @@
-Public URL: https://mathify-zlqz.onrender.com/
-Sitemap:   https://mathify-zlqz.onrender.com/sitemap.xml
-Health:    https://mathify-zlqz.onrender.com/api/health
+Public URL: https://wise-uncertainty-homes-flashers.trycloudflare.com/
+Sitemap:   https://wise-uncertainty-homes-flashers.trycloudflare.com/sitemap.xml
+Health:    https://wise-uncertainty-homes-flashers.trycloudflare.com/api/health
 
 Double-click "Open Math Tutor.bat" to open the site in your browser.
 Site stays online while your PC is running (autostart enabled on login).
+
+Note: Tunnel URL changes when restarted. Update Google Search Console if the URL changes.

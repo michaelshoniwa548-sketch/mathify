@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mathify-zlqz.onrender.com/sitemap.xml
+Sitemap: https://wise-uncertainty-homes-flashers.trycloudflare.com/sitemap.xml

@@ -5,7 +5,7 @@ const { VertexAI } = require('@google-cloud/vertexai');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
 

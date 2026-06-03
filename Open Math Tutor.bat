@@ -1,2 +1,2 @@
 @echo off
-start https://pack-workplace-mia-calculators.trycloudflare.com/
+start https://wise-uncertainty-homes-flashers.trycloudflare.com/
