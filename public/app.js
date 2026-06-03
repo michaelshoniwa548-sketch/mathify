@@ -81,7 +81,7 @@ function addChatMessage(content, isUser = false) {
     let htmlContent = isUser ? content : marked.parse(content);
 
     msgDiv.innerHTML = `
-        <div class="avatar">${isUser ? '👤' : '🤖'}</div>
+        <div class="avatar">${isUser ? '👤' : '<img src="logo.png" alt="Mathify">'}</div>
         <div class="bubble markdown-body">${htmlContent}</div>
     `;
 
@@ -101,7 +101,7 @@ sendChatBtn.addEventListener('click', async () => {
     const thinkingDiv = document.createElement('div');
     thinkingDiv.className = 'message ai thinking-message';
     thinkingDiv.innerHTML = `
-        <div class="avatar">🤖</div>
+        <div class="avatar"><img src="logo.png" alt="Mathify"></div>
         <div class="bubble">
             <div class="typing-indicator">
                 <span></span>
@@ -131,7 +131,7 @@ sendChatBtn.addEventListener('click', async () => {
         // Prepare UI for streaming response
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message ai';
-        msgDiv.innerHTML = `<div class="avatar">🤖</div><div class="bubble markdown-body"></div>`;
+        msgDiv.innerHTML = `<div class="avatar"><img src="logo.png" alt="Mathify"></div><div class="bubble markdown-body"></div>`;
         chatHistory.appendChild(msgDiv);
         const bubble = msgDiv.querySelector('.bubble');
 
