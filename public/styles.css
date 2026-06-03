@@ -483,3 +483,69 @@ textarea::placeholder {
 .site-footer strong {
     color: var(--accent-glow);
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: auto;
+        padding: 1rem;
+        flex-direction: column;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .brand {
+        margin-bottom: 1rem;
+    }
+    
+    .nav-links {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: none; /* Firefox */
+    }
+    
+    .nav-links::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+    
+    .nav-links li {
+        margin-bottom: 0;
+        white-space: nowrap;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+    }
+    
+    .status-indicator {
+        display: none; /* Hide on mobile to save space */
+    }
+    
+    .content-area {
+        padding: 1rem;
+    }
+    
+    .message {
+        max-width: 95%;
+    }
+    
+    .input-area {
+        padding: 0.5rem;
+    }
+    
+    header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .site-footer {
+        position: static;
+        width: 100%;
+        text-align: center;
+        border-top-left-radius: 0;
+    }
+}
