@@ -48,18 +48,22 @@ Start-Sleep -Seconds 3
 
 Write-Host "Starting Cloudflare tunnel..."
 $tunnelLog = Join-Path $LogDir "tunnel.log"
-$tunnel = Start-Process -FilePath "cloudflared" -ArgumentList "tunnel","--url","http://localhost:$Port" -PassThru -WindowStyle Hidden -RedirectStandardOutput $tunnelLog -RedirectStandardError $tunnelLog
+$tunnelErr = Join-Path $LogDir "tunnel.err"
+$tunnel = Start-Process -FilePath "cloudflared" -ArgumentList "tunnel","--url","http://localhost:$Port" -PassThru -WindowStyle Hidden -RedirectStandardOutput $tunnelLog -RedirectStandardError $tunnelErr
 
 $url = $null
-for ($i = 0; $i - 30; $i++) {
+for ($i = 0; $i -lt 30; $i++) {
     Start-Sleep -Seconds 2
-    if (Test-Path $tunnelLog) {
-        $log = Get-Content $tunnelLog -Raw -ErrorAction SilentlyContinue
-        if ($log -match 'https://[a-z0-9-]+\.trycloudflare\.com') {
-            $url = $Matches[0]
-            break
+    foreach ($logFile in @($tunnelLog, $tunnelErr)) {
+        if (Test-Path $logFile) {
+            $log = Get-Content $logFile -Raw -ErrorAction SilentlyContinue
+            if ($log -match 'https://[a-z0-9-]+\.trycloudflare\.com') {
+                $url = $Matches[0]
+                break
+            }
         }
     }
+    if ($url) { break }
 }
 
 if (-not $url) {

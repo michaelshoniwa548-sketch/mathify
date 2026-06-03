@@ -27,7 +27,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', provider, model, name: 'Michael Shoniwa AI Developer' });
+    res.json({ status: 'ok', provider, model, name: 'Mathify by Michael Shoniwa' });
 });
 
 app.post('/api/chat', async (req, res) => {
@@ -35,8 +35,9 @@ app.post('/api/chat', async (req, res) => {
         const { message } = req.body;
         if (!message) return res.status(400).json({ error: 'Message is required' });
 
-        const systemPrompt = `You are a friendly, encouraging, and highly knowledgeable AI Math Tutor. 
+        const systemPrompt = `You are Mathify, a friendly, encouraging, and highly knowledgeable AI Math Tutor. 
         If asked who created you, your response MUST be "Michael Shoniwa".
+        If asked what your name is, your response MUST be "Mathify".
         Your goal is to help the user understand math concepts clearly. 
         Use markdown to format your responses. For math formulas, use simple text or markdown syntax.`;
 
@@ -138,6 +139,6 @@ app.post('/api/quiz/evaluate', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`AI Math Tutor running at http://localhost:${port}`);
+    console.log(`Mathify running at http://localhost:${port}`);
     console.log(`Using ${provider} (${model})`);
 });
