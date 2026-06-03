@@ -1,13 +1,13 @@
 :root {
-    --bg-main: #0a0a0f;
-    --bg-panel: rgba(20, 20, 30, 0.6);
+    --bg-main: #030305;
+    --bg-panel: rgba(15, 15, 25, 0.7);
     --bg-input: rgba(255, 255, 255, 0.05);
     
     --text-primary: #ffffff;
     --text-secondary: #a0a0b0;
     
-    --accent-glow: #8a2be2;
-    --accent-glow-secondary: #4d4dff;
+    --accent-glow: #ff00ff; /* Neon Magenta */
+    --accent-glow-secondary: #00ffff; /* Neon Cyan */
     
     --border-color: rgba(255, 255, 255, 0.1);
     --glass-blur: blur(16px);
@@ -26,8 +26,8 @@ body {
     height: 100vh;
     overflow: hidden;
     background-image: 
-        radial-gradient(circle at 15% 50%, rgba(138, 43, 226, 0.15), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(77, 77, 255, 0.15), transparent 25%);
+        radial-gradient(circle at 15% 50%, rgba(255, 0, 255, 0.12), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(0, 255, 255, 0.12), transparent 25%);
 }
 
 /* Layout */
@@ -57,16 +57,11 @@ body {
 }
 
 .logo {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--accent-glow), var(--accent-glow-secondary));
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 1.5rem;
-    box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
+    object-fit: cover;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
 }
 
 .brand h1 {
@@ -207,8 +202,8 @@ header p {
 }
 
 .message.user .bubble {
-    background: rgba(77, 77, 255, 0.2);
-    border: 1px solid rgba(77, 77, 255, 0.3);
+    background: rgba(0, 255, 255, 0.15);
+    border: 1px solid rgba(0, 255, 255, 0.3);
     border-top-right-radius: 4px;
     border-top-left-radius: 18px;
 }
@@ -267,11 +262,11 @@ textarea::placeholder {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
 }
 
 .glow-btn:hover {
-    box-shadow: 0 6px 25px rgba(138, 43, 226, 0.6);
+    box-shadow: 0 6px 25px rgba(255, 0, 255, 0.6);
     transform: translateY(-2px);
 }
 
