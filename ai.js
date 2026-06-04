@@ -5,7 +5,12 @@ const { VertexAI } = require('@google-cloud/vertexai');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-live-preview';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-pro';
+let GEMINI_MODEL = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+if (/preview/i.test(GEMINI_MODEL)) {
+    console.warn(`GEMINI_MODEL contains a preview model (${GEMINI_MODEL}). Using stable default ${DEFAULT_GEMINI_MODEL} instead.`);
+    GEMINI_MODEL = DEFAULT_GEMINI_MODEL;
+}
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
 
@@ -110,8 +115,33 @@ async function streamResponse(prompt, systemInstruction, res) {
         res.end();
     } catch (error) {
         console.error(`${provider} Streaming Error:`, error && (error.stack || error));
-        // Provide a concise message to the client while logging full details server-side.
         const safeMsg = error && error.message ? error.message : 'Connection to AI interrupted.';
+
+        // If Gemini failed due to an invalid API key, gracefully fallback to Ollama if available.
+        const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(safeMsg);
+        if (useGeminiApi && isGeminiKeyInvalid && ollama) {
+            console.warn('Gemini API key invalid — falling back to Ollama for streaming response.');
+            try {
+                const stream = await ollama.chat({
+                    model: OLLAMA_MODEL,
+                    messages: [
+                        { role: 'system', content: systemInstruction },
+                        { role: 'user', content: prompt }
+                    ],
+                    stream: true
+                });
+                for await (const chunk of stream) {
+                    res.write(chunk.message.content);
+                }
+                return res.end();
+            } catch (ollamaErr) {
+                console.error('Ollama fallback streaming error:', ollamaErr && (ollamaErr.stack || ollamaErr));
+                const ollamaMsg = ollamaErr && ollamaErr.message ? ollamaErr.message : 'Ollama fallback failed.';
+                return res.end(`\n\n[Error: Fallback failed: ${ollamaMsg}]`);
+            }
+        }
+
+        // Default behavior: return the original safe message to client.
         res.end(`\n\n[Error: ${provider} streaming failed: ${safeMsg}]`);
     }
 }
@@ -143,7 +173,28 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
     } catch (error) {
         console.error(`${provider} Error:`, error && (error.stack || error));
         // Surface a helpful message but avoid exposing secrets.
-        throw new Error(`Failed to generate response from ${provider}: ${error && error.message ? error.message : 'unknown error'}`);
+        const errMsg = error && error.message ? error.message : 'unknown error';
+
+        // If Gemini failed due to invalid API key, try Ollama fallback synchronously.
+        const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(errMsg);
+        if (useGeminiApi && isGeminiKeyInvalid && ollama) {
+            try {
+                const response = await ollama.chat({
+                    model: OLLAMA_MODEL,
+                    messages: [
+                        { role: 'system', content: systemInstruction },
+                        { role: 'user', content: prompt }
+                    ],
+                    format: forceJson ? 'json' : ''
+                });
+                return response.message.content;
+            } catch (ollamaErr) {
+                console.error('Ollama fallback error:', ollamaErr && (ollamaErr.stack || ollamaErr));
+                throw new Error(`Failed to generate response from fallback Ollama: ${ollamaErr && ollamaErr.message ? ollamaErr.message : 'unknown'}`);
+            }
+        }
+
+        throw new Error(`Failed to generate response from ${provider}: ${errMsg}`);
     }
 }
 
