@@ -15,6 +15,8 @@ const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
 
 const onCloudRun = Boolean(process.env.K_SERVICE);
+const onRender = Boolean(process.env.RENDER_SERVICE_ID || process.env.RENDER);
+const isCloudDeployment = onCloudRun || onRender || Boolean(GCP_PROJECT);
 
 let useGeminiApi = false;
 let useVertex = false;
@@ -44,9 +46,13 @@ if (GEMINI_API_KEY && !forceOllama) {
 
 useVertex = !useGeminiApi && (onCloudRun || Boolean(GCP_PROJECT));
 
-const ollama = (!useGeminiApi && !useVertex)
+const ollama = (!useGeminiApi && !useVertex && (!isCloudDeployment || forceOllama))
     ? new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' })
     : null;
+
+if (!ollama && !useGeminiApi && !useVertex && !isCloudDeployment) {
+    console.warn('No Ollama provider available locally. Set OLLAMA_HOST or a valid GEMINI_API_KEY.');
+}
 
 if (useVertex) {
     try {
