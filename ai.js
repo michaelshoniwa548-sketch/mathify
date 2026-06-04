@@ -110,7 +110,7 @@ async function streamResponse(prompt, systemInstruction, res) {
                 const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) res.write(text);
             }
-        } else {
+        } else if (ollama) {
             const stream = await ollama.chat({
                 model: OLLAMA_MODEL,
                 messages: [
@@ -122,6 +122,8 @@ async function streamResponse(prompt, systemInstruction, res) {
             for await (const chunk of stream) {
                 res.write(chunk.message.content);
             }
+        } else {
+            throw new Error('No AI provider available: Gemini key invalid or missing, Vertex not configured, and Ollama not accessible.');
         }
         res.end();
     } catch (error) {
@@ -173,6 +175,10 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
             const model = getVertexModel(systemInstruction, forceJson);
             const result = await model.generateContent({ contents: getVertexContents(prompt) });
             return result.response.candidates[0].content.parts[0].text;
+        }
+
+        if (!ollama) {
+            throw new Error('No AI provider available: Gemini key invalid or missing, Vertex not configured, and Ollama not accessible.');
         }
 
         const response = await ollama.chat({
