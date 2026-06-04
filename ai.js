@@ -20,6 +20,7 @@ let useGeminiApi = false;
 let useVertex = false;
 let gemini = null;
 let vertex = null;
+let geminiKeyValid = false;
 
 // Allow forcing use of local Ollama even if GEMINI_API_KEY is present.
 const forceOllama = String(process.env.FORCE_OLLAMA || '').toLowerCase() === 'true';
@@ -30,11 +31,15 @@ if (GEMINI_API_KEY && !forceOllama) {
     try {
         gemini = new GoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
         useGeminiApi = true;
+        geminiKeyValid = true;
+        console.log('Gemini API key detected and Gemini provider enabled.');
     } catch (initErr) {
         console.error('GoogleGenerativeAI init error - falling back to other providers:', initErr);
         gemini = null;
         useGeminiApi = false;
     }
+} else if (!GEMINI_API_KEY) {
+    console.log('No GEMINI_API_KEY found; using Ollama or Vertex fallback only.');
 }
 
 useVertex = !useGeminiApi && (onCloudRun || Boolean(GCP_PROJECT));
@@ -121,6 +126,9 @@ async function streamResponse(prompt, systemInstruction, res) {
         const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(safeMsg);
         if (useGeminiApi && isGeminiKeyInvalid && ollama) {
             console.warn('Gemini API key invalid — falling back to Ollama for streaming response.');
+            useGeminiApi = false;
+            gemini = null;
+            geminiKeyValid = false;
             try {
                 const stream = await ollama.chat({
                     model: OLLAMA_MODEL,
@@ -178,6 +186,10 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
         // If Gemini failed due to invalid API key, try Ollama fallback synchronously.
         const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(errMsg);
         if (useGeminiApi && isGeminiKeyInvalid && ollama) {
+            console.warn('Gemini API key invalid — falling back to Ollama for non-stream response.');
+            useGeminiApi = false;
+            gemini = null;
+            geminiKeyValid = false;
             try {
                 const response = await ollama.chat({
                     model: OLLAMA_MODEL,
