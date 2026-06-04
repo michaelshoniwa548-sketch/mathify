@@ -3,21 +3,50 @@ const { Ollama } = require('ollama');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { VertexAI } = require('@google-cloud/vertexai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCEAfSErFMzeN_87GJErNjo2gYVvdQO37M';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-live-preview';
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
 
 const onCloudRun = Boolean(process.env.K_SERVICE);
-const useGeminiApi = Boolean(GEMINI_API_KEY);
-const useVertex = !useGeminiApi && (onCloudRun || Boolean(GCP_PROJECT));
+
+let useGeminiApi = false;
+let useVertex = false;
+let gemini = null;
+let vertex = null;
+
+// Allow forcing use of local Ollama even if GEMINI_API_KEY is present.
+const forceOllama = String(process.env.FORCE_OLLAMA || '').toLowerCase() === 'true';
+
+// Try to initialize Gemini client only if a key is provided. If initialization fails
+// we gracefully fall back to Ollama (local) or Vertex where applicable.
+if (GEMINI_API_KEY && !forceOllama) {
+    try {
+        gemini = new GoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
+        useGeminiApi = true;
+    } catch (initErr) {
+        console.error('GoogleGenerativeAI init error - falling back to other providers:', initErr);
+        gemini = null;
+        useGeminiApi = false;
+    }
+}
+
+useVertex = !useGeminiApi && (onCloudRun || Boolean(GCP_PROJECT));
 
 const ollama = (!useGeminiApi && !useVertex)
     ? new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' })
     : null;
-const gemini = useGeminiApi ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
-const vertex = useVertex ? new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION }) : null;
+
+if (useVertex) {
+    try {
+        vertex = new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION });
+    } catch (vErr) {
+        console.error('VertexAI init error - disabling Vertex provider:', vErr);
+        vertex = null;
+        useVertex = false;
+    }
+}
 
 function getProviderInfo() {
     if (useGeminiApi || useVertex) {
@@ -80,8 +109,10 @@ async function streamResponse(prompt, systemInstruction, res) {
         }
         res.end();
     } catch (error) {
-        console.error(`${provider} Streaming Error:`, error);
-        res.end('\n\n[Error: Connection to AI interrupted.]');
+        console.error(`${provider} Streaming Error:`, error && (error.stack || error));
+        // Provide a concise message to the client while logging full details server-side.
+        const safeMsg = error && error.message ? error.message : 'Connection to AI interrupted.';
+        res.end(`\n\n[Error: ${provider} streaming failed: ${safeMsg}]`);
     }
 }
 
@@ -110,8 +141,9 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
         });
         return response.message.content;
     } catch (error) {
-        console.error(`${provider} Error:`, error);
-        throw new Error(`Failed to generate response from ${provider}.`);
+        console.error(`${provider} Error:`, error && (error.stack || error));
+        // Surface a helpful message but avoid exposing secrets.
+        throw new Error(`Failed to generate response from ${provider}: ${error && error.message ? error.message : 'unknown error'}`);
     }
 }
 
