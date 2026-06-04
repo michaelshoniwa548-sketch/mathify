@@ -130,7 +130,13 @@ async function streamResponse(prompt, systemInstruction, res) {
         console.error(`${provider} Streaming Error:`, error && (error.stack || error));
         const safeMsg = error && error.message ? error.message : 'Connection to AI interrupted.';
 
-        // If Gemini failed due to an invalid API key, gracefully fallback to Ollama if available.
+        // On cloud deployment, do not attempt Ollama fallback—return provider error directly.
+        if (isCloudDeployment) {
+            res.end(`\n\n[Error: ${provider} failed: ${safeMsg}]`);
+            return;
+        }
+
+        // If Gemini failed due to an invalid API key and we have Ollama locally, gracefully fallback.
         const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(safeMsg);
         if (useGeminiApi && isGeminiKeyInvalid && ollama) {
             console.warn('Gemini API key invalid — falling back to Ollama for streaming response.');
@@ -195,7 +201,12 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
         // Surface a helpful message but avoid exposing secrets.
         const errMsg = error && error.message ? error.message : 'unknown error';
 
-        // If Gemini failed due to invalid API key, try Ollama fallback synchronously.
+        // On cloud deployment, do not attempt Ollama fallback—return provider error directly.
+        if (isCloudDeployment) {
+            throw new Error(`Failed to generate response from ${provider}: ${errMsg}`);
+        }
+
+        // If Gemini failed due to invalid API key, try Ollama fallback synchronously (local only).
         const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(errMsg);
         if (useGeminiApi && isGeminiKeyInvalid && ollama) {
             console.warn('Gemini API key invalid — falling back to Ollama for non-stream response.');
