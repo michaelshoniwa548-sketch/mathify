@@ -73,13 +73,19 @@ if (useVertex) {
 }
 
 function getProviderInfo() {
-    if (useGeminiApi || useVertex) {
+    if (useGeminiApi) {
         return { provider: 'Gemini', model: GEMINI_MODEL };
+    }
+    if (useVertex) {
+        return { provider: 'Vertex', model: GEMINI_MODEL };
     }
     if (ollama) {
         return { provider: 'Ollama', model: OLLAMA_MODEL };
     }
-    return { provider: 'None', model: 'N/A' };
+    return {
+        provider: 'None',
+        model: GEMINI_MODEL || OLLAMA_MODEL || 'N/A'
+    };
 }
 
 function getGeminiApiModel(systemInstruction, jsonMode = false) {
