@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getProviderInfo, streamResponse, generateResponseNonStream } = require('./ai');
+const { getProviderInfo, streamResponse, generateResponseNonStream, getDiagnostics } = require('./ai');
 
 const app = express();
 app.disable('x-powered-by');
@@ -27,7 +27,12 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', provider, model, name: 'Mathify by Michael Shoniwa' });
+    try {
+        const diagnostics = getDiagnostics();
+        res.json({ status: 'ok', provider, model, name: 'Mathify by Michael Shoniwa', diagnostics });
+    } catch (e) {
+        res.json({ status: 'ok', provider, model, name: 'Mathify by Michael Shoniwa' });
+    }
 });
 
 app.post('/api/chat', async (req, res) => {

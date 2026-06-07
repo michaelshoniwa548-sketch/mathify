@@ -34,6 +34,15 @@ let openai = null;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
+// Diagnostics for provider initialization and status
+const providerStatus = {
+    gemini: null,
+    openai: null,
+    vertex: null,
+    ollama: null,
+    selected: null,
+    isCloudDeployment
+};
 // Allow forcing use of local Ollama even if GEMINI_API_KEY is present.
 const forceOllama = String(process.env.FORCE_OLLAMA || '').toLowerCase() === 'true';
 
@@ -45,13 +54,16 @@ if (GEMINI_API_KEY && !forceOllama) {
         useGeminiApi = true;
         geminiKeyValid = true;
         console.log('Gemini API key detected and Gemini provider enabled.');
+        providerStatus.gemini = { enabled: true };
     } catch (initErr) {
         console.error('GoogleGenerativeAI init error - falling back to other providers:', initErr);
         gemini = null;
         useGeminiApi = false;
+        providerStatus.gemini = { enabled: false, error: initErr && (initErr.message || String(initErr)) };
     }
 } else if (!GEMINI_API_KEY) {
     console.log('No GEMINI_API_KEY found; using Ollama or Vertex fallback only.');
+    providerStatus.gemini = { enabled: false, error: 'GEMINI_API_KEY not provided' };
 }
 
 // Initialize OpenAI if an API key is present.
@@ -61,10 +73,12 @@ if (OPENAI_API_KEY) {
         openai = new OpenAI({ apiKey: OPENAI_API_KEY });
         useOpenAI = true;
         console.log('OpenAI API key detected and OpenAI provider enabled.');
+        providerStatus.openai = { enabled: true };
     } catch (e) {
         console.error('OpenAI init error - skipping OpenAI provider:', e && (e.stack || e));
         openai = null;
         useOpenAI = false;
+        providerStatus.openai = { enabled: false, error: e && (e.message || String(e)) };
     }
 }
 
@@ -74,23 +88,36 @@ const ollama = (!useGeminiApi && !useVertex && !isCloudDeployment)
     ? new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' })
     : null;
 
-if (!ollama && !useGeminiApi && !useVertex && !isCloudDeployment) {
+if (ollama) {
+    providerStatus.ollama = { enabled: true, host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' };
+} else if (!useGeminiApi && !useVertex && !isCloudDeployment) {
     console.warn('No Ollama provider available locally. Set OLLAMA_HOST or a valid GEMINI_API_KEY.');
+    providerStatus.ollama = { enabled: false, error: 'Ollama not available locally' };
 }
 
 if (isCloudDeployment && !useGeminiApi && !useVertex) {
     console.warn('[Cloud Deploy] No provider available: GEMINI_API_KEY not set or invalid, Vertex not configured. Set GEMINI_API_KEY in environment.');
+    providerStatus.cloudWarning = '[Cloud Deploy] No provider available: GEMINI_API_KEY not set or invalid, Vertex not configured.';
 }
 
 if (useVertex) {
     try {
         vertex = new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION });
+        providerStatus.vertex = { enabled: true, project: GCP_PROJECT, location: VERTEX_LOCATION };
     } catch (vErr) {
         console.error('VertexAI init error - disabling Vertex provider:', vErr);
         vertex = null;
         useVertex = false;
+        providerStatus.vertex = { enabled: false, error: vErr && (vErr.message || String(vErr)) };
     }
 }
+
+// Record selected provider
+if (useGeminiApi) providerStatus.selected = 'Gemini';
+else if (useOpenAI) providerStatus.selected = 'OpenAI';
+else if (useVertex) providerStatus.selected = 'Vertex';
+else if (ollama) providerStatus.selected = 'Ollama';
+else providerStatus.selected = 'None';
 
 function getProviderInfo() {
     if (useGeminiApi) {
@@ -108,6 +135,18 @@ function getProviderInfo() {
     return {
         provider: 'None',
         model: GEMINI_MODEL || OPENAI_MODEL || OLLAMA_MODEL || 'N/A'
+    };
+}
+
+function getDiagnostics() {
+    return {
+        providerStatus,
+        env: {
+            GEMINI_API_KEY: !!GEMINI_API_KEY,
+            OPENAI_API_KEY: !!OPENAI_API_KEY,
+            OLLAMA_HOST: !!process.env.OLLAMA_HOST,
+            isCloudDeployment
+        }
     };
 }
 
