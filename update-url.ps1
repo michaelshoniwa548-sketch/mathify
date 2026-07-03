@@ -6,8 +6,6 @@ $BaseUrl = $Url.TrimEnd('/')
 $indexPath = Join-Path $ProjectRoot "public\index.html"
 $html = Get-Content $indexPath -Raw
 $html = $html -replace 'https?://[^"\s>]+trycloudflare\.com', $BaseUrl
-$html = $html -replace 'https?://[^"\s>]+\.onrender\.com', $BaseUrl
-$html = $html -replace 'https?://[^"\s>]+\.run\.app', $BaseUrl
 Set-Content $indexPath $html -NoNewline
 
 Set-Content (Join-Path $ProjectRoot "public\robots.txt") "User-agent: *`nAllow: /`n`nSitemap: $BaseUrl/sitemap.xml" -NoNewline
