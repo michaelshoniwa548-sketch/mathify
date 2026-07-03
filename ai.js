@@ -28,7 +28,7 @@ const forceOllama = String(process.env.FORCE_OLLAMA || '').toLowerCase() === 'tr
 // we gracefully fall back to Ollama (local) where applicable.
 if (GEMINI_API_KEY && !forceOllama) {
     try {
-        gemini = new GoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
+        gemini = new GoogleGenerativeAI(GEMINI_API_KEY);
         useGeminiApi = true;
         geminiKeyValid = true;
         console.log('Gemini API key detected and Gemini provider enabled.');
