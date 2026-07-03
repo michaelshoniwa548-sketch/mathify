@@ -71,6 +71,8 @@ function handleEnter(e, submitBtn) {
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat');
 const chatHistory = document.getElementById('chat-history');
+const micToggle = document.getElementById('mic-toggle');
+const autoSpeakCheckbox = document.getElementById('auto-speak');
 
 chatInput.addEventListener('keydown', (e) => handleEnter(e, sendChatBtn));
 
@@ -147,6 +149,10 @@ sendChatBtn.addEventListener('click', async () => {
             accumulatedText += chunk;
             bubble.innerHTML = marked.parse(accumulatedText);
             chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+        // After full response received, optionally speak it
+        if (autoSpeakCheckbox && autoSpeakCheckbox.checked) {
+            try { speakText(accumulatedText); } catch (e) { /* ignore speech errors */ }
         }
 
     } catch (err) {
@@ -296,6 +302,48 @@ function renderQuiz(questions, topic) {
         questionsContainer.appendChild(qDiv);
     });
 }
+
+// --- Speech: STT (Web Speech API) and TTS (SpeechSynthesis) ---
+function speakText(text) {
+    if (!('speechSynthesis' in window)) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    utter.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+}
+
+let recognition = null;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.addEventListener('result', (e) => {
+        const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+        chatInput.value = transcript;
+        sendChatBtn.click();
+    });
+
+    recognition.addEventListener('end', () => {
+        micToggle.classList.remove('listening');
+    });
+}
+
+micToggle && micToggle.addEventListener('click', () => {
+    if (!recognition) {
+        alert('Speech recognition not supported in this browser.');
+        return;
+    }
+    try {
+        micToggle.classList.add('listening');
+        recognition.start();
+    } catch (e) {
+        micToggle.classList.remove('listening');
+    }
+});
 
 btnSubmitQuiz.addEventListener('click', async () => {
     if (!currentQuizData) return;

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://wise-uncertainty-homes-flashers.trycloudflare.com/sitemap.xml
+Sitemap: https://sport-responses-webmasters-moreover.trycloudflare.com/sitemap.xml

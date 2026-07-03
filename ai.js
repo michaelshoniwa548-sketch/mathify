@@ -1,69 +1,47 @@
 require('dotenv').config();
 const { Ollama } = require('ollama');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { VertexAI } = require('@google-cloud/vertexai');
 // OpenAI is required lazily during initialization to avoid module errors
 // in environments where the package isn't installed locally.
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-pro';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 let GEMINI_MODEL = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
-if (/preview/i.test(GEMINI_MODEL)) {
-    console.warn(`GEMINI_MODEL contains a preview model (${GEMINI_MODEL}). Using stable default ${DEFAULT_GEMINI_MODEL} instead.`);
+// Mathify only does text generation. Reject preview builds and non-text
+// (text-to-speech / audio) models, which don't work with generateContent.
+const UNSUPPORTED_GEMINI_MODEL = /preview|tts|audio|speech/i;
+if (UNSUPPORTED_GEMINI_MODEL.test(GEMINI_MODEL)) {
+    console.warn(`GEMINI_MODEL "${GEMINI_MODEL}" is a preview or non-text (TTS/audio) model, which Mathify can't use for chat/solve/quiz. Using stable default ${DEFAULT_GEMINI_MODEL} instead.`);
     GEMINI_MODEL = DEFAULT_GEMINI_MODEL;
-}
-const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
-const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
-
-const onCloudRun = Boolean(process.env.K_SERVICE);
-const onRender = Boolean(process.env.RENDER_SERVICE_ID || process.env.RENDER);
-const isCloudDeployment = onCloudRun || onRender || Boolean(GCP_PROJECT);
-
-if (isCloudDeployment) {
-    console.log(`[Deployment] Detected cloud environment: onCloudRun=${onCloudRun}, onRender=${onRender}, GCP=${Boolean(GCP_PROJECT)}`);
 }
 
 let useGeminiApi = false;
-let useVertex = false;
 let gemini = null;
-let vertex = null;
 let geminiKeyValid = false;
 let useOpenAI = false;
 let openai = null;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-// Diagnostics for provider initialization and status
-const providerStatus = {
-    gemini: null,
-    openai: null,
-    vertex: null,
-    ollama: null,
-    selected: null,
-    isCloudDeployment
-};
 // Allow forcing use of local Ollama even if GEMINI_API_KEY is present.
 const forceOllama = String(process.env.FORCE_OLLAMA || '').toLowerCase() === 'true';
 
 // Try to initialize Gemini client only if a key is provided. If initialization fails
-// we gracefully fall back to Ollama (local) or Vertex where applicable.
+// we gracefully fall back to Ollama (local) where applicable.
 if (GEMINI_API_KEY && !forceOllama) {
     try {
-        gemini = new GoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
+        gemini = new GoogleGenerativeAI(GEMINI_API_KEY);
         useGeminiApi = true;
         geminiKeyValid = true;
         console.log('Gemini API key detected and Gemini provider enabled.');
-        providerStatus.gemini = { enabled: true };
     } catch (initErr) {
         console.error('GoogleGenerativeAI init error - falling back to other providers:', initErr);
         gemini = null;
         useGeminiApi = false;
-        providerStatus.gemini = { enabled: false, error: initErr && (initErr.message || String(initErr)) };
     }
 } else if (!GEMINI_API_KEY) {
-    console.log('No GEMINI_API_KEY found; using Ollama or Vertex fallback only.');
-    providerStatus.gemini = { enabled: false, error: 'GEMINI_API_KEY not provided' };
+    console.log('No GEMINI_API_KEY found; using Ollama fallback only.');
 }
 
 // Initialize OpenAI if an API key is present.
@@ -73,51 +51,20 @@ if (OPENAI_API_KEY) {
         openai = new OpenAI({ apiKey: OPENAI_API_KEY });
         useOpenAI = true;
         console.log('OpenAI API key detected and OpenAI provider enabled.');
-        providerStatus.openai = { enabled: true };
     } catch (e) {
         console.error('OpenAI init error - skipping OpenAI provider:', e && (e.stack || e));
         openai = null;
         useOpenAI = false;
-        providerStatus.openai = { enabled: false, error: e && (e.message || String(e)) };
     }
 }
 
-useVertex = !useGeminiApi && !useOpenAI && (onCloudRun || Boolean(GCP_PROJECT));
-
-const ollama = (!useGeminiApi && !useVertex && !isCloudDeployment)
+const ollama = !useGeminiApi
     ? new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' })
     : null;
 
-if (ollama) {
-    providerStatus.ollama = { enabled: true, host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' };
-} else if (!useGeminiApi && !useVertex && !isCloudDeployment) {
+if (!ollama && !useGeminiApi) {
     console.warn('No Ollama provider available locally. Set OLLAMA_HOST or a valid GEMINI_API_KEY.');
-    providerStatus.ollama = { enabled: false, error: 'Ollama not available locally' };
 }
-
-if (isCloudDeployment && !useGeminiApi && !useVertex) {
-    console.warn('[Cloud Deploy] No provider available: GEMINI_API_KEY not set or invalid, Vertex not configured. Set GEMINI_API_KEY in environment.');
-    providerStatus.cloudWarning = '[Cloud Deploy] No provider available: GEMINI_API_KEY not set or invalid, Vertex not configured.';
-}
-
-if (useVertex) {
-    try {
-        vertex = new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION });
-        providerStatus.vertex = { enabled: true, project: GCP_PROJECT, location: VERTEX_LOCATION };
-    } catch (vErr) {
-        console.error('VertexAI init error - disabling Vertex provider:', vErr);
-        vertex = null;
-        useVertex = false;
-        providerStatus.vertex = { enabled: false, error: vErr && (vErr.message || String(vErr)) };
-    }
-}
-
-// Record selected provider
-if (useGeminiApi) providerStatus.selected = 'Gemini';
-else if (useOpenAI) providerStatus.selected = 'OpenAI';
-else if (useVertex) providerStatus.selected = 'Vertex';
-else if (ollama) providerStatus.selected = 'Ollama';
-else providerStatus.selected = 'None';
 
 function getProviderInfo() {
     if (useGeminiApi) {
@@ -125,9 +72,6 @@ function getProviderInfo() {
     }
     if (useOpenAI) {
         return { provider: 'OpenAI', model: OPENAI_MODEL };
-    }
-    if (useVertex) {
-        return { provider: 'Vertex', model: GEMINI_MODEL };
     }
     if (ollama) {
         return { provider: 'Ollama', model: OLLAMA_MODEL };
@@ -138,38 +82,11 @@ function getProviderInfo() {
     };
 }
 
-function getDiagnostics() {
-    return {
-        providerStatus,
-        env: {
-            GEMINI_API_KEY: !!GEMINI_API_KEY,
-            OPENAI_API_KEY: !!OPENAI_API_KEY,
-            OLLAMA_HOST: !!process.env.OLLAMA_HOST,
-            isCloudDeployment
-        }
-    };
-}
-
 function getGeminiApiModel(systemInstruction, jsonMode = false) {
     const config = { model: GEMINI_MODEL };
     if (systemInstruction) config.systemInstruction = systemInstruction;
     if (jsonMode) config.generationConfig = { responseMimeType: 'application/json' };
     return gemini.getGenerativeModel(config);
-}
-
-function getVertexModel(systemInstruction, jsonMode = false) {
-    const config = { model: GEMINI_MODEL };
-    if (systemInstruction) {
-        config.systemInstruction = { parts: [{ text: systemInstruction }] };
-    }
-    if (jsonMode) {
-        config.generationConfig = { responseMimeType: 'application/json' };
-    }
-    return vertex.getGenerativeModel(config);
-}
-
-function getVertexContents(prompt) {
-    return [{ role: 'user', parts: [{ text: prompt }] }];
 }
 
 async function streamResponse(prompt, systemInstruction, res) {
@@ -180,13 +97,6 @@ async function streamResponse(prompt, systemInstruction, res) {
             const result = await model.generateContentStream(prompt);
             for await (const chunk of result.stream) {
                 const text = chunk.text();
-                if (text) res.write(text);
-            }
-        } else if (useVertex) {
-            const model = getVertexModel(systemInstruction);
-            const result = await model.generateContentStream({ contents: getVertexContents(prompt) });
-            for await (const chunk of result.stream) {
-                const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) res.write(text);
             }
         } else if (ollama) {
@@ -202,18 +112,12 @@ async function streamResponse(prompt, systemInstruction, res) {
                 res.write(chunk.message.content);
             }
         } else {
-            throw new Error('No AI provider available: Gemini key invalid or missing, Vertex not configured, and Ollama not accessible.');
+            throw new Error('No AI provider available: Gemini key invalid or missing, and Ollama not accessible.');
         }
         res.end();
     } catch (error) {
         console.error(`${provider} Streaming Error:`, error && (error.stack || error));
         const safeMsg = error && error.message ? error.message : 'Connection to AI interrupted.';
-
-        // On cloud deployment, do not attempt Ollama fallback—return provider error directly.
-        if (isCloudDeployment) {
-            res.end(`\n\n[Error: ${provider} failed: ${safeMsg}]`);
-            return;
-        }
 
         // If OpenAI is configured and Gemini failed, try OpenAI locally (non-streaming fallback only).
         if (!useOpenAI && OPENAI_API_KEY) {
@@ -227,7 +131,7 @@ async function streamResponse(prompt, systemInstruction, res) {
             }
         }
 
-        if (useOpenAI && !isCloudDeployment) {
+        if (useOpenAI) {
             try {
                 const resp = await openai.chat.completions.create({
                     model: OPENAI_MODEL,
@@ -296,14 +200,8 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
             return resp.choices?.[0]?.message?.content || '';
         }
 
-        if (useVertex) {
-            const model = getVertexModel(systemInstruction, forceJson);
-            const result = await model.generateContent({ contents: getVertexContents(prompt) });
-            return result.response.candidates[0].content.parts[0].text;
-        }
-
         if (!ollama) {
-            throw new Error('No AI provider available: Gemini key invalid or missing, Vertex not configured, and Ollama not accessible.');
+            throw new Error('No AI provider available: Gemini key invalid or missing, and Ollama not accessible.');
         }
 
         const response = await ollama.chat({
@@ -319,11 +217,6 @@ async function generateResponseNonStream(prompt, systemInstruction = '', forceJs
         console.error(`${provider} Error:`, error && (error.stack || error));
         // Surface a helpful message but avoid exposing secrets.
         const errMsg = error && error.message ? error.message : 'unknown error';
-
-        // On cloud deployment, do not attempt Ollama fallback—return provider error directly.
-        if (isCloudDeployment) {
-            throw new Error(`Failed to generate response from ${provider}: ${errMsg}`);
-        }
 
         // If Gemini failed due to invalid API key, try Ollama fallback synchronously (local only).
         const isGeminiKeyInvalid = /API key not valid|API_KEY_INVALID|api key not valid/i.test(errMsg);
