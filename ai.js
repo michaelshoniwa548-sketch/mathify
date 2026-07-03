@@ -8,8 +8,11 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 let GEMINI_MODEL = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
-if (/preview/i.test(GEMINI_MODEL)) {
-    console.warn(`GEMINI_MODEL contains a preview model (${GEMINI_MODEL}). Using stable default ${DEFAULT_GEMINI_MODEL} instead.`);
+// Mathify only does text generation. Reject preview builds and non-text
+// (text-to-speech / audio) models, which don't work with generateContent.
+const UNSUPPORTED_GEMINI_MODEL = /preview|tts|audio|speech/i;
+if (UNSUPPORTED_GEMINI_MODEL.test(GEMINI_MODEL)) {
+    console.warn(`GEMINI_MODEL "${GEMINI_MODEL}" is a preview or non-text (TTS/audio) model, which Mathify can't use for chat/solve/quiz. Using stable default ${DEFAULT_GEMINI_MODEL} instead.`);
     GEMINI_MODEL = DEFAULT_GEMINI_MODEL;
 }
 
