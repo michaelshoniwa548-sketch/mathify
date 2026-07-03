@@ -230,7 +230,9 @@ const panelResults = document.getElementById('quiz-results');
 // Setup UI
 const btnGenerateQuiz = document.getElementById('btn-generate-quiz');
 const topicInput = document.getElementById('quiz-topic');
+const topicsContainer = document.getElementById('quiz-topics');
 const difficultySelect = document.getElementById('quiz-difficulty');
+const countSelect = document.getElementById('quiz-count');
 
 // Active UI
 const questionsContainer = document.getElementById('quiz-questions-container');
@@ -244,17 +246,22 @@ const btnNewQuiz = document.getElementById('btn-new-quiz');
 let currentQuizData = null;
 
 btnGenerateQuiz.addEventListener('click', async () => {
-    const topic = topicInput.value.trim();
-    if (!topic) {
-        alert("Please enter a topic.");
+    const selectedTopics = Array.from(topicsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    const customTopics = topicInput.value.split(',').map(t => t.trim()).filter(Boolean);
+    const topics = [...selectedTopics, ...customTopics];
+
+    if (topics.length === 0) {
+        alert("Please pick at least one topic or add your own.");
         return;
     }
 
     const difficulty = difficultySelect.value;
-    
+    const count = parseInt(countSelect.value, 10) || 5;
+
     btnGenerateQuiz.disabled = true;
     topicInput.disabled = true;
     difficultySelect.disabled = true;
+    countSelect.disabled = true;
     btnGenerateQuiz.textContent = 'Generating Quiz...';
 
     const statusMsg = document.createElement('div');
@@ -272,14 +279,14 @@ btnGenerateQuiz.addEventListener('click', async () => {
         const res = await fetch(`${API_BASE}/quiz/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, difficulty })
+            body: JSON.stringify({ topics, difficulty, count })
         });
 
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
         currentQuizData = data.quiz;
-        renderQuiz(currentQuizData, topic);
+        renderQuiz(currentQuizData, topics.join(', '));
 
         // Switch Panels
         panelSetup.classList.add('hidden');
@@ -291,6 +298,7 @@ btnGenerateQuiz.addEventListener('click', async () => {
         btnGenerateQuiz.disabled = false;
         topicInput.disabled = false;
         difficultySelect.disabled = false;
+        countSelect.disabled = false;
         btnGenerateQuiz.textContent = 'Generate Quiz';
         statusMsg.remove();
     }
