@@ -348,6 +348,69 @@ textarea::placeholder {
     color: var(--text-secondary);
 }
 
+.form-group .hint {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.topic-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.topic-chip {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    user-select: none;
+}
+
+.topic-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.topic-chip span {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+}
+
+.topic-chip:hover span {
+    border-color: var(--accent-glow);
+    color: var(--text-primary);
+}
+
+.topic-chip input:checked + span {
+    background: linear-gradient(135deg, var(--accent-glow), var(--accent-glow-secondary));
+    border-color: transparent;
+    color: white;
+}
+
+.topic-chip input:focus-visible + span {
+    outline: 2px solid var(--accent-glow);
+    outline-offset: 2px;
+}
+
 .form-group input, .form-group select {
     width: 100%;
     background: var(--bg-input);

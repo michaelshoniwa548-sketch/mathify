@@ -68,20 +68,36 @@ app.post('/api/solve', async (req, res) => {
 
 app.post('/api/quiz/generate', async (req, res) => {
     try {
-        const { topic, difficulty = 'medium' } = req.body;
-        if (!topic) return res.status(400).json({ error: 'Topic is required' });
+        const { topic, topics, difficulty = 'medium', count } = req.body;
 
-        const systemPrompt = `You are a test generator. Create a short math quiz consisting of exactly 3 questions based on the topic provided by the user.
+        let topicList = [];
+        if (Array.isArray(topics)) {
+            topicList = topics.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim());
+        } else if (typeof topic === 'string' && topic.trim()) {
+            topicList = [topic.trim()];
+        }
+        if (topicList.length === 0) return res.status(400).json({ error: 'At least one topic is required' });
+
+        let numQuestions = parseInt(count, 10);
+        if (!Number.isFinite(numQuestions)) numQuestions = 5;
+        numQuestions = Math.min(Math.max(numQuestions, 1), 20);
+
+        const topicsText = topicList.join(', ');
+
+        const systemPrompt = `You are a test generator. Create a math quiz consisting of exactly ${numQuestions} question(s).
+        The questions must collectively cover the following topic(s): ${topicsText}.
+        If more than one topic is provided, mix the questions across the topics so the quiz spans all of them.
         The difficulty level should be ${difficulty}.
-        Return ONLY a JSON object with a "questions" key containing an array of 3 objects.
+        Return ONLY a JSON object with a "questions" key containing an array of exactly ${numQuestions} object(s).
         Each question object must have this exact structure:
         {
             "id": 1,
             "question": "The question text here"
         }
+        Number the ids sequentially starting from 1 up to ${numQuestions}.
         Do NOT provide the answers. Do NOT include any other text besides the JSON object.`;
 
-        let quizDataRaw = await generateResponseNonStream(`Topic: ${topic}\nDifficulty: ${difficulty}`, systemPrompt, true);
+        let quizDataRaw = await generateResponseNonStream(`Topics: ${topicsText}\nNumber of questions: ${numQuestions}\nDifficulty: ${difficulty}`, systemPrompt, true);
         quizDataRaw = quizDataRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
 
         let quizObj;
