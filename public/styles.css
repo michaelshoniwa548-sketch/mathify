@@ -440,6 +440,29 @@ textarea::placeholder {
     }
 }
 
+/* New chat messages fade/slide in as they arrive */
+.message {
+    animation: fadeIn 0.35s ease both;
+}
+
+/* Responding animation: blinking caret while the AI is streaming a reply */
+.bubble.streaming::after,
+.markdown-body.streaming::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: var(--accent-glow);
+    border-radius: 2px;
+    animation: caretBlink 1s steps(1) infinite;
+}
+
+@keyframes caretBlink {
+    50% { opacity: 0; }
+}
+
 .solve-thinking, .quiz-thinking {
     display: flex;
     flex-direction: column;

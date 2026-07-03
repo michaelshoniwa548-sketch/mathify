@@ -67,6 +67,17 @@ function handleEnter(e, submitBtn) {
     }
 }
 
+// --- Auto-scroll helpers ---
+// Only auto-scroll when the user is already near the bottom, so scrolling up
+// to re-read earlier content isn't interrupted by streaming updates.
+function isNearBottom(el, threshold = 120) {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+}
+
+function scrollToBottom(el, smooth = false) {
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+}
+
 // --- 1. Chat Functionality ---
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat');
@@ -86,7 +97,7 @@ function addChatMessage(content, isUser = false) {
     `;
 
     chatHistory.appendChild(msgDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
+    scrollToBottom(chatHistory, true);
 }
 
 sendChatBtn.addEventListener('click', async () => {
@@ -111,7 +122,7 @@ sendChatBtn.addEventListener('click', async () => {
         </div>
     `;
     chatHistory.appendChild(thinkingDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
+    scrollToBottom(chatHistory, true);
 
     // Disable input and button
     chatInput.disabled = true;
@@ -131,9 +142,10 @@ sendChatBtn.addEventListener('click', async () => {
         // Prepare UI for streaming response
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message ai';
-        msgDiv.innerHTML = `<div class="avatar"><img src="logo.png" alt="Mathify"></div><div class="bubble markdown-body"></div>`;
+        msgDiv.innerHTML = `<div class="avatar"><img src="logo.png" alt="Mathify"></div><div class="bubble markdown-body streaming"></div>`;
         chatHistory.appendChild(msgDiv);
         const bubble = msgDiv.querySelector('.bubble');
+        scrollToBottom(chatHistory, true);
 
         let accumulatedText = "";
         const reader = res.body.getReader();
@@ -143,11 +155,14 @@ sendChatBtn.addEventListener('click', async () => {
             const { done, value } = await reader.read();
             if (done) break;
 
+            const stick = isNearBottom(chatHistory);
             const chunk = decoder.decode(value, { stream: true });
             accumulatedText += chunk;
             bubble.innerHTML = marked.parse(accumulatedText);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+            if (stick) scrollToBottom(chatHistory);
         }
+
+        bubble.classList.remove('streaming');
 
     } catch (err) {
         if (thinkingDiv) thinkingDiv.remove();
@@ -337,6 +352,7 @@ btnSubmitQuiz.addEventListener('click', async () => {
         if (!res.ok) throw new Error('API Error');
 
         quizFeedbackContainer.innerHTML = '';
+        quizFeedbackContainer.classList.add('streaming');
 
         let accumulatedText = "";
         const reader = res.body.getReader();
@@ -346,12 +362,17 @@ btnSubmitQuiz.addEventListener('click', async () => {
             const { done, value } = await reader.read();
             if (done) break;
 
+            const stick = isNearBottom(panelResults);
             const chunk = decoder.decode(value, { stream: true });
             accumulatedText += chunk;
             quizFeedbackContainer.innerHTML = marked.parse(accumulatedText);
+            if (stick) scrollToBottom(panelResults);
         }
 
+        quizFeedbackContainer.classList.remove('streaming');
+
     } catch (err) {
+        quizFeedbackContainer.classList.remove('streaming');
         quizFeedbackContainer.innerHTML = `<p style="color: #ff5252;">Error evaluating quiz: ${err.message}</p>`;
     } finally {
         btnSubmitQuiz.disabled = false;
