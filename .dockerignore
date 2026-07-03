@@ -1,8 +1,0 @@
-node_modules
-npm-debug.log
-.env
-.env.*
-scratch
-test_output.txt
-.git
-.cursor

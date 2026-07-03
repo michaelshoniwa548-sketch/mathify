@@ -17,11 +17,10 @@ const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
 
 const onCloudRun = Boolean(process.env.K_SERVICE);
-const onRender = Boolean(process.env.RENDER_SERVICE_ID || process.env.RENDER);
-const isCloudDeployment = onCloudRun || onRender || Boolean(GCP_PROJECT);
+const isCloudDeployment = onCloudRun || Boolean(GCP_PROJECT);
 
 if (isCloudDeployment) {
-    console.log(`[Deployment] Detected cloud environment: onCloudRun=${onCloudRun}, onRender=${onRender}, GCP=${Boolean(GCP_PROJECT)}`);
+    console.log(`[Deployment] Detected cloud environment: onCloudRun=${onCloudRun}, GCP=${Boolean(GCP_PROJECT)}`);
 }
 
 let useGeminiApi = false;

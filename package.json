@@ -7,11 +7,8 @@
     "start": "nodemon server.js",
     "prod": "node server.js",
     "deploy": "powershell -ExecutionPolicy Bypass -File deploy.ps1",
-    "deploy:free": "powershell -ExecutionPolicy Bypass -File deploy-free.ps1",
     "github": "powershell -ExecutionPolicy Bypass -File push-github.ps1",
     "setup": "powershell -ExecutionPolicy Bypass -File setup-and-deploy.ps1",
-    "public": "powershell -ExecutionPolicy Bypass -File start-public.ps1",
-    "autostart": "powershell -ExecutionPolicy Bypass -File install-autostart.ps1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

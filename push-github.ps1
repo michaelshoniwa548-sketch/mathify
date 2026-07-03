@@ -22,5 +22,4 @@ $url = (gh repo view --json url -q .url 2>$null)
 if ($url) {
     Write-Host ""
     Write-Host "GitHub repo: $url" -ForegroundColor Green
-    Write-Host "Deploy free on Render: https://render.com/deploy?repo=$url"
 }
