@@ -140,6 +140,7 @@ body {
 
 header {
     margin-bottom: 2rem;
+    flex-shrink: 0;
 }
 
 header h2 {
@@ -336,6 +337,16 @@ textarea::placeholder {
     max-width: 600px;
     margin: 0 auto;
     width: 100%;
+}
+
+/* Long quizzes (many questions) fill the remaining height under the header
+   and scroll internally, so every question and the Submit button stay
+   reachable instead of overflowing the fixed-height page. */
+#quiz-active,
+#quiz-results {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .form-group {
