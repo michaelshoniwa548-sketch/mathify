@@ -696,6 +696,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+    function correctMathTranscription(text) {
+        if (!text) return '';
+        let corrected = text;
+
+        const mathPhoneticMap = [
+            [/\b(musical|music|music call)\b/gi, 'circle geometry'],
+            [/\b(circle jam tree|circle jam|circle geom|search geometry)\b/gi, 'circle geometry'],
+            [/\b(quad ratic|quad ratics|quadratics)\b/gi, 'quadratic equations'],
+            [/\b(trigonom tree|trigonom|trig)\b/gi, 'trigonometry'],
+            [/\b(simul tenous|simultaneous)\b/gi, 'simultaneous equations'],
+            [/\b(sear ds|third|third surds)\b/gi, 'surds'],
+            [/\b(mat rices|may trices)\b/gi, 'matrices'],
+            [/\b(log rithms|logarithm|logs)\b/gi, 'logarithms'],
+            [/\b(in equalities|in quality)\b/gi, 'inequalities']
+        ];
+
+        for (const [regex, replacement] of mathPhoneticMap) {
+            corrected = corrected.replace(regex, replacement);
+        }
+
+        return corrected;
+    }
+
     function setupPttRecognition() {
         if (!SpeechRecognitionAPI) return null;
         const rec = new SpeechRecognitionAPI();
@@ -721,8 +744,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     interim += t;
                 }
             }
-            // Keep best available transcript
-            pttTranscript = (finalText || interim).trim();
+            // Keep best available transcript auto-corrected for math phonemes
+            const raw = (finalText || interim).trim();
+            pttTranscript = correctMathTranscription(raw);
         };
 
         rec.onerror = (e) => {

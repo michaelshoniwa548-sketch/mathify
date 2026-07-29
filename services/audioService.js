@@ -7,6 +7,29 @@ const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
+function correctMathTranscription(text) {
+    if (!text) return '';
+    let corrected = text;
+
+    const mathPhoneticMap = [
+        [/\b(musical|music|music call)\b/gi, 'circle geometry'],
+        [/\b(circle jam tree|circle jam|circle geom|search geometry)\b/gi, 'circle geometry'],
+        [/\b(quad ratic|quad ratics|quadratics)\b/gi, 'quadratic equations'],
+        [/\b(trigonom tree|trigonom|trig)\b/gi, 'trigonometry'],
+        [/\b(simul tenous|simultaneous)\b/gi, 'simultaneous equations'],
+        [/\b(sear ds|third|third surds)\b/gi, 'surds'],
+        [/\b(mat rices|may trices)\b/gi, 'matrices'],
+        [/\b(log rithms|logarithm|logs)\b/gi, 'logarithms'],
+        [/\b(in equalities|in quality)\b/gi, 'inequalities']
+    ];
+
+    for (const [regex, replacement] of mathPhoneticMap) {
+        corrected = corrected.replace(regex, replacement);
+    }
+
+    return corrected;
+}
+
 /**
  * Seam 1: Speech-to-Text (STT) via Gemini Multimodal Audio Streaming
  * Transcribes audio buffer to plain text using generateContentStream.
@@ -30,7 +53,7 @@ async function transcribeAudio(audioBuffer, mimeType = 'audio/wav') {
                     }
                 },
                 {
-                    text: "Transcribe the user's spoken audio into exact text. Output only the verbatim transcription text without quotes or commentary."
+                    text: "Transcribe the user's spoken audio into accurate English text. The user is a ZIMSEC Mathematics student asking about topics such as: circle geometry, quadratic equations, matrices, logarithms, surds, vectors, trigonometry, calculus, inequalities, indices, sets, probability, consumer arithmetic, linear programming, and mensuration. Output only the verbatim transcription text without quotes."
                 }
             ]
         });
@@ -40,7 +63,8 @@ async function transcribeAudio(audioBuffer, mimeType = 'audio/wav') {
             fullTranscript += chunk.text || '';
         }
 
-        return fullTranscript.trim();
+        const raw = fullTranscript.trim();
+        return correctMathTranscription(raw);
     } catch (err) {
         console.error('⚠️ [STT Error]:', err.message);
         throw new Error(`Speech transcription failed: ${err.message}`);
