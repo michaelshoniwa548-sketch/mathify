@@ -1674,3 +1674,129 @@ textarea::placeholder {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* ====================================================
+   MOBILE RESPONSIVE DESIGN (Max-Width: 768px)
+   Strictly scoped to mobile screens to preserve PC layout
+   ==================================================== */
+@media screen and (max-width: 768px) {
+    body {
+        overflow-y: auto;
+    }
+
+    .app-container {
+        flex-direction: column;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* Convert sidebar into a sleek fixed Bottom Navigation Bar */
+    .sidebar {
+        width: 100%;
+        height: 64px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 10000;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        padding: 4px 8px;
+        background: rgba(15, 15, 25, 0.95);
+        backdrop-filter: blur(20px);
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar .brand,
+    .sidebar .status-indicator {
+        display: none !important;
+    }
+
+    .nav-links {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nav-links li {
+        flex: 1;
+        flex-direction: column;
+        gap: 3px;
+        padding: 6px 2px;
+        margin: 0;
+        border-radius: 8px;
+        font-size: 0.68rem;
+        font-weight: 500;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .nav-links li svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Main Content Area */
+    .content-area {
+        flex: 1;
+        padding: 1rem 0.75rem 80px 0.75rem !important;
+        overflow-y: auto;
+    }
+
+    .view header h2 {
+        font-size: 1.4rem;
+    }
+
+    .view header p {
+        font-size: 0.85rem;
+    }
+
+    /* Chat & Input Area */
+    .input-area {
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    textarea, input {
+        font-size: 16px !important; /* Prevents mobile browser auto-zoom on focus */
+    }
+
+    .file-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .glass-btn {
+        padding: 0.6rem;
+    }
+
+    /* Step Solver */
+    .solve-input-container {
+        padding: 0.75rem;
+    }
+
+    /* Voice Assistant Feed */
+    .assistant-feed {
+        height: 260px;
+    }
+
+    .ptt-button {
+        padding: 0.85rem;
+        font-size: 0.95rem;
+    }
+
+    /* Toast notices */
+    .toast-notice-popup {
+        left: 12px;
+        right: 12px;
+        bottom: 74px;
+        max-width: calc(100vw - 24px);
+    }
+}
+
