@@ -87,20 +87,78 @@ function scrollToBottom(el, smooth = false) {
     el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
 }
 
+// --- Attachment State & UI Preview Helper ---
+function renderAttachmentPreview(container, attachment, onRemove) {
+    if (!container) return;
+    if (!attachment) {
+        container.innerHTML = '';
+        return;
+    }
+    const isImg = attachment.mimeType.startsWith('image/');
+    container.innerHTML = `
+        <div class="attachment-chip">
+            ${isImg ? `<img src="${attachment.data}" alt="attachment">` : '📄'}
+            <span class="chip-name">${attachment.name}</span>
+            <span class="chip-remove" title="Remove file">&times;</span>
+        </div>
+    `;
+    const removeBtn = container.querySelector('.chip-remove');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            container.innerHTML = '';
+            onRemove();
+        });
+    }
+}
+
 // --- 1. Chat Functionality ---
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat');
 const chatHistory = document.getElementById('chat-history');
+const chatFileBtn = document.getElementById('chat-file-btn');
+const chatFileInput = document.getElementById('chat-file-input');
+const chatPreviewContainer = document.getElementById('chat-attachment-preview');
+let currentChatAttachment = null;
+
+if (chatFileBtn && chatFileInput) {
+    chatFileBtn.addEventListener('click', () => chatFileInput.click());
+    chatFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            currentChatAttachment = {
+                name: file.name,
+                mimeType: file.type || 'image/png',
+                data: evt.target.result
+            };
+            renderAttachmentPreview(chatPreviewContainer, currentChatAttachment, () => {
+                currentChatAttachment = null;
+                chatFileInput.value = '';
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+}
 
 if (chatInput && sendChatBtn) {
     chatInput.addEventListener('keydown', (e) => handleEnter(e, sendChatBtn));
 
     sendChatBtn.addEventListener('click', async () => {
         const message = chatInput.value.trim();
-        if (!message) return;
+        const attachmentToSend = currentChatAttachment;
+        if (!message && !attachmentToSend) return;
 
-        addChatMessage(message, true);
+        let userDisplayMsg = message;
+        if (attachmentToSend) {
+            userDisplayMsg += `\n\n*📎 Attached File: ${attachmentToSend.name}*`;
+        }
+
+        addChatMessage(userDisplayMsg, true);
         chatInput.value = '';
+        currentChatAttachment = null;
+        if (chatPreviewContainer) chatPreviewContainer.innerHTML = '';
+        if (chatFileInput) chatFileInput.value = '';
 
         const thinkingDiv = document.createElement('div');
         thinkingDiv.className = 'message ai thinking-message';
@@ -124,7 +182,7 @@ if (chatInput && sendChatBtn) {
             const res = await fetch(`${API_BASE}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ message, attachment: attachmentToSend })
             });
 
             if (thinkingDiv) thinkingDiv.remove();
@@ -192,13 +250,39 @@ window.addChatMessage = addChatMessage;
 const solveInput = document.getElementById('solve-input');
 const btnSolve = document.getElementById('btn-solve');
 const solveOutput = document.getElementById('solve-output');
+const solveFileBtn = document.getElementById('solve-file-btn');
+const solveFileInput = document.getElementById('solve-file-input');
+const solvePreviewContainer = document.getElementById('solve-attachment-preview');
+let currentSolveAttachment = null;
+
+if (solveFileBtn && solveFileInput) {
+    solveFileBtn.addEventListener('click', () => solveFileInput.click());
+    solveFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            currentSolveAttachment = {
+                name: file.name,
+                mimeType: file.type || 'image/png',
+                data: evt.target.result
+            };
+            renderAttachmentPreview(solvePreviewContainer, currentSolveAttachment, () => {
+                currentSolveAttachment = null;
+                solveFileInput.value = '';
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+}
 
 if (solveInput && btnSolve) {
     solveInput.addEventListener('keydown', (e) => handleEnter(e, btnSolve));
 
     btnSolve.addEventListener('click', async () => {
         const problem = solveInput.value.trim();
-        if (!problem) return;
+        const attachmentToSend = currentSolveAttachment;
+        if (!problem && !attachmentToSend) return;
 
         solveOutput.innerHTML = `
             <div class="solve-thinking">
@@ -215,11 +299,15 @@ if (solveInput && btnSolve) {
         btnSolve.disabled = true;
         btnSolve.textContent = 'Solving...';
 
+        currentSolveAttachment = null;
+        if (solvePreviewContainer) solvePreviewContainer.innerHTML = '';
+        if (solveFileInput) solveFileInput.value = '';
+
         try {
             const res = await fetch(`${API_BASE}/solve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ problem })
+                body: JSON.stringify({ problem, attachment: attachmentToSend })
             });
 
             if (!res.ok) throw new Error(`Server error: ${res.statusText}`);

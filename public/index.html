@@ -124,6 +124,7 @@
                         <div class="bubble">Hello! I'm Mathify, your personal AI Math Tutor specializing in ZIMSEC and general mathematics. What shall we learn today?</div>
                     </div>
                 </div>
+                <div id="chat-attachment-preview" class="attachment-preview-container"></div>
                 <div class="input-area">
                     <button id="voice-chat" class="glass-btn voice-btn" title="Toggle Live Voice Call">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
@@ -134,7 +135,14 @@
                         </svg>
                     </button>
                     <textarea id="chat-input" placeholder="E.g., What is the Pythagorean theorem or solve 2x + 5 = 15" rows="1"></textarea>
-                    <button id="send-chat" class="glass-btn">
+                    <button id="chat-file-btn" class="glass-btn file-btn" title="Attach Image or File">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <input type="file" id="chat-file-input" accept="image/*,.pdf" style="display:none;">
+                    <button id="send-chat" class="glass-btn" title="Send Message">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
                             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -150,6 +158,7 @@
                     <p>Enter an equation or word problem to see how to solve it.</p>
                 </header>
                 <div class="solve-input-container">
+                    <div id="solve-attachment-preview" class="attachment-preview-container"></div>
                     <div class="input-area">
                         <button id="voice-solve" class="glass-btn voice-btn" title="Voice Input">
                             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
@@ -159,9 +168,18 @@
                                 <line x1="8" y1="23" x2="16" y2="23"></line>
                             </svg>
                         </button>
-                        <textarea id="solve-input" placeholder="E.g., Solve for x: 2x + 5 = 15" rows="2"></textarea>
+                        <textarea id="solve-input" placeholder="E.g., Solve for x: 2x + 5 = 15 or attach an image/file" rows="2"></textarea>
                     </div>
-                    <button id="btn-solve" class="glow-btn">Solve Problem</button>
+                    <div class="solve-btn-group">
+                        <button id="solve-file-btn" class="glass-btn file-btn" title="Attach Image or File">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <input type="file" id="solve-file-input" accept="image/*,.pdf" style="display:none;">
+                        <button id="btn-solve" class="glow-btn">Solve Problem</button>
+                    </div>
                 </div>
                 <div class="solve-results">
                     <div id="solve-output" class="markdown-body">

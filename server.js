@@ -122,7 +122,7 @@ app.use((req, res, next) => {
 });
 
 // 13. FAILOVER & STREAMING HELPER WITH GOOGLE SEARCH & RAG GROUNDING
-async function streamGeminiHelper({ prompt, systemInstruction, maxTokens = 120, res, isSSE = false, enableGrounding = true }) {
+async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTokens = 1024, res, isSSE = false, enableGrounding = true }) {
     if (!ai) {
         throw new Error('Gemini API key is not configured.');
     }
@@ -132,7 +132,18 @@ async function streamGeminiHelper({ prompt, systemInstruction, maxTokens = 120, 
         ? recentHistory.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.parts[0].text}`).join('\n') + '\n\n'
         : '';
 
-    const parts = [{ text: `${systemInstruction}\n\n${historyText}User: ${prompt}` }];
+    const parts = [];
+    if (attachment && attachment.data && attachment.mimeType) {
+        const cleanBase64 = attachment.data.replace(/^data:[^;]+;base64,/, '');
+        parts.push({
+            inlineData: {
+                mimeType: attachment.mimeType,
+                data: cleanBase64
+            }
+        });
+    }
+    parts.push({ text: `${systemInstruction}\n\n${historyText}User: ${prompt || 'Analyze and solve the math problem in this attached image/file step-by-step according to ZIMSEC exam specifications.'}` });
+
     const contents = [{ role: 'user', parts }];
 
     const config = {
@@ -536,16 +547,17 @@ app.post('/api/voice-chat', async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message } = req.body;
-        if (!message) return res.status(400).json({ error: 'Message is required' });
+        const { message, attachment } = req.body;
+        if (!message && !attachment) return res.status(400).json({ error: 'Message or file attachment is required' });
 
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Transfer-Encoding', 'chunked');
 
         await streamGeminiHelper({
-            prompt: message,
+            prompt: message || '',
             systemInstruction: ZIMSEC_TEXT_PROMPT,
-            maxTokens: 450,
+            attachment,
+            maxTokens: 1024,
             res,
             isSSE: false,
             enableGrounding: true
@@ -557,8 +569,8 @@ app.post('/api/chat', async (req, res) => {
 
 app.post('/api/solve', async (req, res) => {
     try {
-        const { problem } = req.body;
-        if (!problem) return res.status(400).json({ error: 'Problem is required' });
+        const { problem, attachment } = req.body;
+        if (!problem && !attachment) return res.status(400).json({ error: 'Problem statement or file attachment is required' });
 
         const systemInstruction = `${ZIMSEC_TEXT_PROMPT}\nBreak down the solution into clear, numbered, step-by-step ZIMSEC examination method instructions. Show working for Paper 1 and Paper 2.`;
 
@@ -566,9 +578,10 @@ app.post('/api/solve', async (req, res) => {
         res.setHeader('Transfer-Encoding', 'chunked');
 
         await streamGeminiHelper({
-            prompt: problem,
+            prompt: problem || '',
             systemInstruction,
-            maxTokens: 700,
+            attachment,
+            maxTokens: 1024,
             res,
             isSSE: false,
             enableGrounding: true
@@ -576,6 +589,7 @@ app.post('/api/solve', async (req, res) => {
     } catch (error) {
         if (!res.headersSent) res.status(500).json({ error: error.message });
     }
+});
 });
 
 // --- QUIZ GENERATION ENDPOINT ---
