@@ -82,8 +82,19 @@ async function indexZimsecStore() {
     }
 }
 
-// Trigger background indexing without blocking server boot
-setImmediate(indexZimsecStore);
+// Process Safety Nets for Production / Render Deployment
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ [Uncaught Exception]:', err ? err.message : err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ [Unhandled Rejection]:', reason ? (reason.message || reason) : reason);
+});
+
+// Trigger background indexing safely without blocking server boot
+setImmediate(() => {
+    indexZimsecStore().catch(err => console.warn('Background indexing warning:', err.message));
+});
 
 // Express app initialization
 const app = express();
