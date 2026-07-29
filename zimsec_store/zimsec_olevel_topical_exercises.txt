@@ -1,0 +1,176 @@
+================================================================================
+ZIMSEC ORDINARY LEVEL MATHEMATICS TOPICAL COLLECTION EXERCISES (2010 - 2020)
+Compiler: Nyamasoka Hardwork (Cell: +263771691700, Email: stuyvesant.hn@gmail.com)
+Curriculum: ZIMSEC Zimbabwe O-Level Mathematics (Papers 4004, 4008, 4028, 4030)
+================================================================================
+
+TABLE OF CONTENTS & TOPIC CLASSIFICATION:
+1. Algebraic Expressions & Algebraic Fractions (pp. 4-6)
+2. Approximations & Estimations (pp. 7-8)
+3. Change of Subject of Formula & Change of Units (pp. 9-12)
+4. Circle Geometry & Circle Properties (pp. 13-22)
+5. Constructions & Loci (pp. 23-29)
+6. Consumer Arithmetic & Financial Mathematics (pp. 30-34)
+7. Co-ordinate Geometry (pp. 35-37)
+8. Factorisation, H.C.F & L.C.M (pp. 38-40)
+9. Fractions, Decimals & Percentages (pp. 41-43)
+10. Functional Notation & Functional Graphs (pp. 44-50)
+11. Inequalities & Linear Programming (pp. 51-58)
+12. Laws of Indices (pp. 59-60)
+13. Linear Equations & Simultaneous Equations (pp. 61, 114-115)
+14. Logarithms (pp. 62-63)
+15. Matrices (pp. 64-66)
+16. Measures & Mensuration (pp. 67-78)
+17. Number Bases (pp. 79-80)
+18. Ordinary & Standard Form (pp. 81-82)
+19. Points, Lines & Angles (pp. 83-85)
+20. Polygons, Symmetry & Circles (pp. 86-89)
+21. Prime Numbers, Sequences & Types of Numbers (pp. 90-91)
+22. Probability (pp. 92-95)
+23. Quadratic Equations (pp. 96-97)
+24. Rational, Irrational Numbers & Surds (p. 98)
+25. Ratios, Rates & Proportions (pp. 99-100)
+26. Scales & Simple Map Problems (pp. 101-102)
+27. Sets & Venn Diagrams (pp. 103-109)
+28. Similarity & Congruency (pp. 110-113)
+29. Statistics & Probability (pp. 116-123)
+30. Substitution (p. 124)
+31. Geometrical Transformations (pp. 125-133)
+32. Travel & Kinematics Graphs (pp. 134-139)
+33. Trigonometry, Bearings & Distances (pp. 140-150)
+34. Variation (pp. 151-154)
+35. Vector Geometry (pp. 155-162)
+
+================================================================================
+SECTION 1: ALGEBRAIC EXPRESSIONS & ALGEBRAIC FRACTIONS
+================================================================================
+Sample ZIMSEC Questions:
+- Simplify 4b - 3(4 - 2b) [4004/1 J2020 Q19(a)]
+- Expand and simplify -3(x - 7) + 5(2 - 4x) [4030/1 J2018 Q15(a)]
+- Simplify ax - x(a - b) + 2bx [4004/2 N2018 Q1(a)]
+- Remove brackets and simplify (4a + b)(5a - 3b) [4030/1 J2016 Q4(b)]
+- Express 2/(2-3n) - 1/n as a single fraction in simplest form [4004/1 J2020 Q9]
+- Express (v-u)/(u-v)^2 - 2/(v-u) as a single fraction in lowest terms [4004/1 N2020 Q13]
+- Simplify (3x^2)/(x^2 - 5x) / x/(x^2 - 25) [4030/1 J2018 Q13]
+- Simplify (x^2 - y^2)/(x^2 + xy) / (2y - 2x)/xy [4008/1 J2015 Q21]
+
+================================================================================
+SECTION 2: APPROXIMATIONS & ESTIMATIONS
+================================================================================
+Sample ZIMSEC Questions:
+- Express 208.9 correct to 3 significant figures and to the nearest hundred. [4004/1 J2020 Q1]
+- Express 19.796 correct to (a) 2 decimal places, (b) 1 sig fig, (c) nearest whole number. [4004/1 N2020 Q1]
+- Triangle ABC has sides AB = 6.5 cm, BC = 7.8 cm and AC = 9.1 cm to nearest mm. Express AB as a range. [4004/2 N2020 Q3(c)]
+- Estimate (7.63 * 5.81 * 9.3)/(27.1 * 31.2) by rounding to 1 sig fig. [4030/1 N2017 Q6(a)]
+- Length measured to 1 decimal place is 9.5 cm. State limits. [4030/1 J2016 Q3(b)]
+
+================================================================================
+SECTION 3: CHANGE OF SUBJECT OF FORMULA & UNITS CONVERSION
+================================================================================
+Sample ZIMSEC Questions:
+- Given s = a/(1-r), (i) find S when a=81, r=1/3; (ii) make r subject of formula. [4004/2 J2020 Q9(b)]
+- Given sqrt(ax + b) = d, express x in terms of a, b, d. [4004/2 J2019 Q4(c)]
+- Temperature F = 32 + (9/5)C. Make C subject of formula. [4030/1 J2018 Q14]
+- Convert 3.84 hectares to m^2. Convert 4.8 days to hours. Convert 38°54' to degrees. [4004/1 N2020 Q8]
+- Convert 12 m/s to km/h. [4004/1 N2018 Q22(a)]
+- Density: 120 kg metal, volume 0.4 m^3. Find density in g/cm^3. [4028/2 J2010 Q2(b)]
+
+================================================================================
+SECTION 4: CIRCLE GEOMETRY & PROPERTIES
+================================================================================
+Sample ZIMSEC Theorems & Questions:
+Key Theorems Tested:
+1. Angle at center is twice angle at circumference subtended by same arc (AOC = 2 * ABC).
+2. Angles in the same segment of a circle are equal.
+3. Angle in a semi-circle is a right angle (90°).
+4. Opposite angles of a cyclic quadrilateral sum to 180° (A + C = 180°).
+5. Tangent to a circle is perpendicular to radius at point of contact (90°).
+6. Alternate segment theorem: Angle between tangent and chord equals angle in alternate segment.
+7. Tangents from an external point to a circle are equal in length.
+
+Sample ZIMSEC Questions:
+- ABCD is cyclic quadrilateral with center O. Given angle ADB = 28°, CBD = 47°, calculate BAD, CDP, CAB, BCD. [4004/1 J2020 Q18]
+- TA and TB are tangents to circle center O at A and B. TDO is straight line, ATO = 36°. Calculate AOD, AOB. [4008/1R N2014 Q3]
+
+================================================================================
+SECTION 5: CONSTRUCTIONS & LOCI
+================================================================================
+Rules & Standard Loci:
+1. Locus of points at a given distance from a point P -> Circle centered at P.
+2. Locus of points equidistant from two points A and B -> Perpendicular bisector of segment AB.
+3. Locus of points equidistant from two intersecting lines AB and BC -> Angle bisector of ABC.
+4. Locus of points at a given distance from a straight line AB -> Parallel line pair at distance d.
+
+================================================================================
+SECTION 6: CONSUMER ARITHMETIC & FINANCIAL MATHEMATICS
+================================================================================
+ZIMSEC Formulas & Topics:
+- Simple Interest: I = (P * R * T) / 100 ; Total Amount A = P + I
+- Compound Interest: A = P(1 + r/100)^n
+- Sales Tax / VAT (15%), Commission, Profit/Loss percentage, Foreign Exchange conversion (US$, ZWL, Rand, Pula).
+
+================================================================================
+SECTION 7: CO-ORDINATE GEOMETRY & FUNCTIONAL GRAPHS
+================================================================================
+Formulas & Topics:
+- Slope/Gradient m = (y2 - y1) / (x2 - x1)
+- Line equation y = mx + c or ax + by = c
+- Parallel lines have equal gradients (m1 = m2). Perpendicular lines satisfy m1 * m2 = -1.
+- Distance formula d = sqrt((x2 - x1)^2 + (y2 - y1)^2)
+- Turning points of quadratic curves y = ax^2 + bx + c at x = -b / (2a).
+
+================================================================================
+SECTION 8: FACTORISATION, HCF, LCM & SURDS
+================================================================================
+- Factorisation by grouping, quadratic trinomials ax^2 + bx + c, difference of two squares a^2 - b^2.
+- Surd simplification: sqrt(a * b) = sqrt(a) * sqrt(b); Rationalising denominators.
+
+================================================================================
+SECTION 9: INEQUALITIES & LINEAR PROGRAMMING
+================================================================================
+- Solving linear inequalities in one variable and illustrating on number line.
+- Linear programming in 2 variables: writing constraint inequalities, drawing boundary lines, shading UNWANTED regions, finding feasible region R and optimizing objective profit function P = ax + by.
+
+================================================================================
+SECTION 10: MATRICES
+================================================================================
+- Matrix order (r x c), addition, subtraction, scalar multiplication, matrix multiplication.
+- Determinant of 2x2 matrix A = [[a, b], [c, d]]: det(A) = ad - bc. Singular matrix when det(A) = 0.
+- Inverse of 2x2 matrix A^-1 = (1 / det(A)) * [[d, -b], [-c, a]].
+
+================================================================================
+SECTION 11: MEASURES, MENSURATION & KINEMATICS
+================================================================================
+- Mensuration Formulas:
+  * Circle: Area = pi*r^2, Circumference = 2*pi*r
+  * Sector: Arc length = (theta/360)*2*pi*r, Area = (theta/360)*pi*r^2
+  * Cylinder: Volume = pi*r^2*h, Curved Surface Area = 2*pi*r*h, Total Surface Area = 2*pi*r*h + 2*pi*r^2
+  * Cone: Volume = (1/3)*pi*r^2*h, Curved Surface Area = pi*r*l (l = slant height = sqrt(r^2 + h^2))
+  * Sphere: Volume = (4/3)*pi*r^3, Surface Area = 4*pi*r^2
+  * Trapezium: Area = 0.5 * (a + b) * h
+  * Prism: Volume = Base Area * Height
+- Speed-Time & Velocity-Time Kinematics Graphs:
+  * Acceleration = Slope/Gradient of v-t graph
+  * Distance Travelled = Area under v-t graph (triangles, trapeziums, rectangles)
+  * Average Speed = Total Distance / Total Time
+
+================================================================================
+SECTION 12: PROBABILITY & STATISTICS
+================================================================================
+- Probability P(E) = Number of favorable outcomes / Total outcomes
+- Tree diagrams for independent and dependent (without replacement) events.
+- Mean = sum(f*x) / sum(f); Median = middle value; Mode = highest frequency.
+- Cumulative frequency curves (Ogives), lower quartile Q1, median Q2, upper quartile Q3, Interquartile Range (IQR = Q3 - Q1).
+- Frequency density = Frequency / Class width (for histograms).
+
+================================================================================
+SECTION 13: TRIGONOMETRY, BEARINGS & VECTORS
+================================================================================
+- Right-angled trigonometry: SOH CAH TOA (sin theta = opp/hyp, cos theta = adj/hyp, tan theta = opp/adj)
+- Non-right-angled trigonometry:
+  * Sine Rule: a / sin A = b / sin B = c / sin C
+  * Cosine Rule: a^2 = b^2 + c^2 - 2bc * cos A
+  * Triangle Area = 0.5 * a * b * sin C
+- Bearings: 3-figure angles measured clockwise from True North (000° to 360°). Reverse bearing = (theta + 180°) mod 360°.
+- Vector Geometry: Position vectors OP, column vectors (x, y)^T, vector magnitude |v| = sqrt(x^2 + y^2), ratio divisions and parallel vectors (u = k*v).
+================================================================================

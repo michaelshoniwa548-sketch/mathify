@@ -48,22 +48,6 @@ navLinks.forEach(link => {
 });
 
 // --- Utility Functions ---
-function renderMath(element) {
-    if (!element || !window.renderMathInElement) return;
-    try {
-        window.renderMathInElement(element, {
-            delimiters: [
-                { left: '$$', right: '$$', display: true },
-                { left: '$', right: '$', display: false },
-                { left: '\\(', right: '\\)', display: false },
-                { left: '\\[', right: '\\]', display: true }
-            ],
-            throwOnError: false
-        });
-    } catch (e) {
-        console.warn('[KaTeX Render Warning]:', e.message);
-    }
-}
 function showLoading(show) {
     if (show) {
         loadingOverlay.classList.remove('hidden');
@@ -149,12 +133,10 @@ if (chatInput && sendChatBtn) {
                 const chunk = decoder.decode(value, { stream: true });
                 accumulatedText += chunk;
                 bubble.innerHTML = marked.parse(accumulatedText);
-                renderMath(bubble);
                 if (stick) scrollToBottom(chatHistory);
             }
 
             bubble.classList.remove('streaming');
-            renderMath(bubble);
 
         } catch (err) {
             if (thinkingDiv) thinkingDiv.remove();
@@ -180,8 +162,6 @@ function addChatMessage(content, isUser = false) {
     `;
 
     chatHistory.appendChild(msgDiv);
-    const bubble = msgDiv.querySelector('.bubble');
-    if (bubble) renderMath(bubble);
     scrollToBottom(chatHistory, true);
 }
 
@@ -222,23 +202,10 @@ if (solveInput && btnSolve) {
                 body: JSON.stringify({ problem })
             });
 
-            if (!res.ok) throw new Error(`Server error: ${res.statusText}`);
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
-            let accumulatedText = "";
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder('utf-8');
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                accumulatedText += chunk;
-                solveOutput.innerHTML = marked.parse(accumulatedText);
-                renderMath(solveOutput);
-            }
-
-            renderMath(solveOutput);
+            solveOutput.innerHTML = marked.parse(data.solution);
 
         } catch (err) {
             solveOutput.innerHTML = `<p style="color: #ff5252;">Error: ${err.message}</p>`;
@@ -439,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const textInput = document.getElementById('assistant-text-input');
     const sendBtn = document.getElementById('assistant-send-btn');
 
-    if (!pttBtn) return;
+    if (!pttBtn || !textInput) return;
 
     let currentState = 'Ready';
     let recognition = null;
@@ -491,13 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State Manager ---
     function setVisualState(state) {
         currentState = state;
-        const energyRing = document.getElementById('assistant-energy-ring');
         if (stateText) stateText.textContent = state;
         if (stateBadge) {
             stateBadge.className = `state-badge ${state.toLowerCase()}`;
-        }
-        if (energyRing) {
-            energyRing.className = `energy-ring state-${state.toLowerCase()}`;
         }
     }
 
@@ -506,11 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!feed) return null;
         const msgDiv = document.createElement('div');
         msgDiv.className = `feed-message ${role}`;
-        const parsedHtml = (role === 'assistant' || role === 'user') ? marked.parse(text || '') : (text || '');
-        msgDiv.innerHTML = `<div class="msg-content">${parsedHtml}</div>`;
+        msgDiv.innerHTML = `<div class="msg-content">${text}</div>`;
         feed.appendChild(msgDiv);
-        const content = msgDiv.querySelector('.msg-content');
-        if (content) renderMath(content);
         feed.scrollTop = feed.scrollHeight;
         return msgDiv;
     }
@@ -525,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const audioPlayer = document.getElementById('mathify-audio-player');
-    let activeTurnAbortController = null;
 
     function stopCurrentAudio() {
         if (audioPlayer) {
@@ -533,30 +492,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function cancelPreviousTurn() {
-        if (activeTurnAbortController) {
-            try { activeTurnAbortController.abort(); } catch(e) {}
-            activeTurnAbortController = null;
-        }
-        stopCurrentAudio();
-
-        if (feed) {
-            const bubbles = feed.querySelectorAll('.feed-message.assistant');
-            bubbles.forEach(b => {
-                const content = b.querySelector('.msg-content');
-                if (content && (!content.textContent.trim() || b.dataset.streaming === 'true')) {
-                    b.remove();
-                }
-            });
-        }
-    }
-
     // --- Send Turn to Backend (SSE streaming) ---
     async function sendTurn(userInput) {
         if (!userInput || !userInput.trim()) return;
 
-        cancelPreviousTurn();
-        activeTurnAbortController = new AbortController();
+        stopCurrentAudio();
 
         // Unlock audio element inside user-gesture stack
         if (audioPlayer) {
@@ -573,26 +513,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let fullText = '';
 
         try {
-            const res = await fetch('/api/trillion/turn', {
+            const res = await fetch('/api/assistant/turn', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: userInput }),
-                signal: activeTurnAbortController.signal
+                body: JSON.stringify({ text: userInput })
             });
 
             if (!res.ok) {
-                appendFeedMessage('system', 'Unable to reach Trillion server. Please try again.');
+                appendFeedMessage('system', 'Connection error. Please try again.');
                 setVisualState('Ready');
                 return;
-            }
-
-            const contentType = res.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                const data = await res.json();
-                if (data.status === 'ignored') {
-                    setVisualState('Ready');
-                    return;
-                }
             }
 
             const reader = res.body.getReader();
@@ -612,42 +542,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     let event;
                     try { event = JSON.parse(line.slice(6)); } catch { continue; }
 
-                    if (event.type === 'tool') {
-                        setVisualState('Thinking');
-                        appendToolBadge(event.name, event.args);
-
-                    } else if (event.type === 'text') {
+                    if (event.type === 'text') {
                         if (!assistantBubble) {
                             assistantBubble = appendFeedMessage('assistant', '');
-                            assistantBubble.dataset.streaming = 'true';
                             assistantContent = assistantBubble.querySelector('.msg-content');
                         }
-                        setVisualState('Thinking');
                         fullText += event.chunk;
-                        assistantContent.innerHTML = marked.parse(fullText);
-                        renderMath(assistantContent);
+                        assistantContent.textContent = fullText;
                         feed.scrollTop = feed.scrollHeight;
 
-                    } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
-                        if (assistantBubble) delete assistantBubble.dataset.streaming;
-                        const audioData = event.audioBase64 || event.audio;
-                        if (audioData && audioPlayer) {
+                    } else if (event.type === 'done') {
+                        setVisualState('Ready');
+
+                    } else if (event.type === 'audio') {
+                        if (event.audioBase64 && audioPlayer) {
                             setVisualState('Speaking');
-                            audioPlayer.src = audioData;
+                            audioPlayer.src = event.audioBase64;
                             audioPlayer.onended = () => setVisualState('Ready');
                             audioPlayer.onerror = () => setVisualState('Ready');
-                            audioPlayer.play().catch((err) => {
-                                console.warn('[Audio Playback Autoplay Blocked]:', err.message);
-                                setVisualState('Ready');
-                            });
-                        } else if (event.type === 'done') {
-                            setVisualState('Ready');
+                            audioPlayer.play().catch(() => setVisualState('Ready'));
                         }
-                    } else if (event.type === 'done') {
-                        if (assistantBubble) delete assistantBubble.dataset.streaming;
-                        if (currentState !== 'Speaking') {
-                            setVisualState('Ready');
-                        }
+
                     } else if (event.type === 'error') {
                         appendFeedMessage('system', 'Unable to process question. Please try again.');
                         setVisualState('Ready');
@@ -655,19 +570,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Audio playback handles setVisualState('Speaking') -> setVisualState('Ready') via onended
+            if (!audioPlayer?.src || audioPlayer.paused) setVisualState('Ready');
 
         } catch (err) {
-            if (
-                err.name === 'AbortError' ||
-                activeTurnAbortController?.signal?.aborted ||
-                (err.message && (err.message.toLowerCase().includes('abort') || err.message.toLowerCase().includes('cancel')))
-            ) {
-                // Intentionally canceled by user — silence completely, no error message!
-                return;
-            }
             console.error('Turn error:', err);
-            appendFeedMessage('system', 'Unable to reach Trillion server. Please try again.');
+            appendFeedMessage('system', 'Connection error. Please try again.');
             setVisualState('Ready');
         }
     }
@@ -731,21 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return rec;
     }
 
-    function unlockAudio() {
-        if (audioPlayer) {
-            audioPlayer.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-            audioPlayer.load();
-            audioPlayer.play().catch(() => {});
-        }
-    }
-
-    document.addEventListener('click', unlockAudio, { once: true });
-    document.addEventListener('keydown', unlockAudio, { once: true });
-
     async function startRecording() {
         if (pttActive) return;
-        unlockAudio();
-        cancelPreviousTurn();
+        stopCurrentAudio();
         pttActive = true;
         pttTranscript = '';
         pttFinalReceived = false;
@@ -781,7 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pttActive = false;
         if (pttText) pttText.textContent = 'Hold to Speak (Space)';
         pttBtn.classList.remove('recording');
-        setVisualState('Thinking');
 
         if (pttRecognition) {
             try { pttRecognition.stop(); } catch (e) {}
@@ -804,112 +698,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = pttTranscript.trim();
             if (text) {
                 sendTurn(text);
-            } else if (audioChunks && audioChunks.length > 0) {
-                sendAudioBlobTurn(audioChunks);
             } else {
                 setVisualState('Ready');
             }
         }, 400);
-    }
-
-    async function sendAudioBlobTurn(chunks) {
-        cancelPreviousTurn();
-        activeTurnAbortController = new AbortController();
-        setVisualState('Thinking');
-
-        try {
-            const mimeType = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
-            const blob = new Blob(chunks, { type: mimeType });
-            const reader = new FileReader();
-
-            reader.onloadend = async () => {
-                const base64Audio = reader.result;
-                const res = await fetch('/api/trillion/voice-turn', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ audioBase64: base64Audio, mimeType }),
-                    signal: activeTurnAbortController.signal
-                });
-
-                if (!res.ok) {
-                    setVisualState('Ready');
-                    return;
-                }
-
-                const streamReader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let sseBuffer = '';
-                let assistantBubble = null;
-                let assistantContent = null;
-                let fullText = '';
-
-                while (true) {
-                    const { done, value } = await streamReader.read();
-                    if (done) break;
-
-                    sseBuffer += decoder.decode(value, { stream: true });
-                    const lines = sseBuffer.split('\n');
-                    sseBuffer = lines.pop();
-
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ')) continue;
-                        let event;
-                        try { event = JSON.parse(line.slice(6)); } catch { continue; }
-
-                        if (event.type === 'user_text') {
-                            appendFeedMessage('user', event.text);
-
-                        } else if (event.type === 'tool') {
-                            setVisualState('Thinking');
-                            appendToolBadge(event.name, event.args);
-
-                        } else if (event.type === 'text') {
-                            if (!assistantBubble) {
-                                assistantBubble = appendFeedMessage('assistant', '');
-                                assistantBubble.dataset.streaming = 'true';
-                                assistantContent = assistantBubble.querySelector('.msg-content');
-                            }
-                            setVisualState('Thinking');
-                            fullText += event.chunk;
-                            assistantContent.innerHTML = marked.parse(fullText);
-                            renderMath(assistantContent);
-                            feed.scrollTop = feed.scrollHeight;
-
-                        } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
-                            if (assistantBubble) delete assistantBubble.dataset.streaming;
-                            const audioData = event.audioBase64 || event.audio;
-                            if (audioData && audioPlayer) {
-                                setVisualState('Speaking');
-                                audioPlayer.src = audioData;
-                                audioPlayer.onended = () => setVisualState('Ready');
-                                audioPlayer.onerror = () => setVisualState('Ready');
-                                audioPlayer.play().catch(() => setVisualState('Ready'));
-                            } else if (event.type === 'done') {
-                                setVisualState('Ready');
-                            }
-                        } else if (event.type === 'done') {
-                            if (assistantBubble) delete assistantBubble.dataset.streaming;
-                            if (currentState !== 'Speaking') {
-                                setVisualState('Ready');
-                            }
-                        }
-                    }
-                }
-            };
-
-            reader.readAsDataURL(blob);
-        } catch(e) {
-            if (
-                e.name === 'AbortError' ||
-                activeTurnAbortController?.signal?.aborted ||
-                (e.message && (e.message.toLowerCase().includes('abort') || e.message.toLowerCase().includes('cancel')))
-            ) {
-                // Intentionally canceled by user — silence completely, no error message!
-                return;
-            }
-            console.warn('sendAudioBlobTurn error:', e.message);
-            setVisualState('Ready');
-        }
     }
 
 
@@ -950,22 +742,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (textInput) {
-        textInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const text = textInput.value.trim();
-                if (text) {
-                    textInput.value = '';
-                    sendTurn(text);
-                }
+    textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const text = textInput.value.trim();
+            if (text) {
+                textInput.value = '';
+                sendTurn(text);
             }
-        });
-    }
+        }
+    });
 
     // --- Non-Intrusive Toast Pop-up Notification (Tier 5 Heartbeat) ---
     async function fetchPendingNotices() {
         try {
-            const res = await fetch('/api/trillion/notices');
+            const res = await fetch('/api/assistant/notices');
             const data = await res.json();
             if (data.success && data.notices && data.notices.length > 0) {
                 data.notices.forEach(showToastNotice);
@@ -990,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const closeBtn = toast.querySelector('.toast-close-btn');
         closeBtn.addEventListener('click', async () => {
-            await fetch('/api/trillion/notices/dismiss', {
+            await fetch('/api/assistant/notices/dismiss', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ noticeId: notice.id })

@@ -1,0 +1,6 @@
+.env
+.git
+.gitignore
+.system_generated/
+scratch/
+*.log

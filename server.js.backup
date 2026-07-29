@@ -1,0 +1,460 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const { GoogleGenAI } = require('@google/genai');
+require('dotenv').config();
+
+// Build a WAV file header for raw PCM data returned by Gemini TTS
+function createWavHeader(dataLength, sampleRate = 24000, channels = 1, bitDepth = 16) {
+    const buffer = Buffer.alloc(44);
+    const byteRate = sampleRate * channels * (bitDepth / 8);
+    const blockAlign = channels * (bitDepth / 8);
+    buffer.write('RIFF', 0, 'ascii');
+    buffer.writeUInt32LE(36 + dataLength, 4);
+    buffer.write('WAVE', 8, 'ascii');
+    buffer.write('fmt ', 12, 'ascii');
+    buffer.writeUInt32LE(16, 16);          // fmt chunk size
+    buffer.writeUInt16LE(1, 20);           // PCM format
+    buffer.writeUInt16LE(channels, 22);
+    buffer.writeUInt32LE(sampleRate, 24);
+    buffer.writeUInt32LE(byteRate, 28);
+    buffer.writeUInt16LE(blockAlign, 32);
+    buffer.writeUInt16LE(bitDepth, 34);
+    buffer.write('data', 36, 'ascii');
+    buffer.writeUInt32LE(dataLength, 40);
+    return buffer;
+}
+
+async function fetchWithRetry(url, options, maxRetries = 3, initialDelay = 1500) {
+    let retries = maxRetries;
+    let delay = initialDelay;
+    while (true) {
+        try {
+            const res = await fetch(url, options);
+            if (res.status === 429 && retries > 1) {
+                console.warn(`Fetch to ${url} returned 429 Too Many Requests. Retrying in ${delay}ms... (${retries - 1} retries remaining)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                retries--;
+                delay *= 2;
+                continue;
+            }
+            return res;
+        } catch (error) {
+            if (retries > 1) {
+                console.warn(`Fetch to ${url} failed: ${error.message}. Retrying in ${delay}ms... (${retries - 1} retries remaining)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                retries--;
+                delay *= 2;
+                continue;
+            }
+            throw error;
+        }
+    }
+}
+
+const app = express();
+app.disable('x-powered-by');
+
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
+
+const port = process.env.PORT || 3002;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/health', (req, res) => {
+    const info = getProviderInfo();
+    res.json({
+        status: info.configured === false ? 'error' : 'ok',
+        provider: info.provider,
+        model: info.model,
+        api: info.api,
+        name: 'Mathify by Michael Shoniwa'
+    });
+});
+
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ error: 'Message is required' });
+
+        const systemPrompt = `You are Mathify, a friendly, encouraging, and highly knowledgeable AI Math Tutor. 
+        If asked who created you, your response MUST be "Michael Shoniwa".
+        If asked what your name is, your response MUST be "Mathify".
+        Your goal is to help the user understand math concepts clearly. 
+        Use markdown to format your responses. For math formulas, use simple text or markdown syntax.`;
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        await streamResponse(message, systemPrompt, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/voice-chat', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ error: 'Message is required' });
+
+        const systemPrompt = `You are Mathify, a friendly, encouraging, and highly knowledgeable AI Math Tutor. 
+        Keep your answers VERY brief, concise, and conversational, as this is for a voice call.
+        Do NOT use complex markdown, bullet points, or long explanations. Just give a short, helpful spoken response.`;
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        await streamResponse(message, systemPrompt, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/solve', async (req, res) => {
+    try {
+        const { problem } = req.body;
+        if (!problem) return res.status(400).json({ error: 'Problem is required' });
+
+        const systemPrompt = `You are an expert math solver. The user will provide a math problem. 
+        You MUST break down the solution into clear, numbered, step-by-step instructions. 
+        Do not just give the final answer. Explain the "why" behind each step.
+        Format your response in markdown.`;
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        await streamResponse(problem, systemPrompt, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/quiz/generate', async (req, res) => {
+    try {
+        const { topic, topics, difficulty = 'medium', count } = req.body;
+
+        let topicList = [];
+        if (Array.isArray(topics)) {
+            topicList = topics.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim());
+        } else if (typeof topic === 'string' && topic.trim()) {
+            topicList = [topic.trim()];
+        }
+        if (topicList.length === 0) return res.status(400).json({ error: 'At least one topic is required' });
+
+        let numQuestions = parseInt(count, 10);
+        if (!Number.isFinite(numQuestions)) numQuestions = 5;
+        numQuestions = Math.min(Math.max(numQuestions, 1), 20);
+
+        const topicsText = topicList.join(', ');
+
+        const systemPrompt = `You are a test generator. Create a math quiz consisting of exactly ${numQuestions} question(s).
+        The questions must collectively cover the following topic(s): ${topicsText}.
+        If more than one topic is provided, mix the questions across the topics so the quiz spans all of them.
+        The difficulty level should be ${difficulty}.
+        Return ONLY a JSON object with a "questions" key containing an array of exactly ${numQuestions} object(s).
+        Each question object must have this exact structure:
+        {
+            "id": 1,
+            "question": "The question text here"
+        }
+        Number the ids sequentially starting from 1 up to ${numQuestions}.
+        Do NOT provide the answers. Do NOT include any other text besides the JSON object.`;
+
+        let quizDataRaw = await generateResponseNonStream(`Topics: ${topicsText}\nNumber of questions: ${numQuestions}\nDifficulty: ${difficulty}`, systemPrompt, true);
+        quizDataRaw = quizDataRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        let quizObj;
+        try {
+            quizObj = JSON.parse(quizDataRaw);
+        } catch (e) {
+            const startIdx = quizDataRaw.indexOf('{');
+            const endIdx = quizDataRaw.lastIndexOf('}');
+            if (startIdx !== -1 && endIdx !== -1) {
+                try {
+                    quizObj = JSON.parse(quizDataRaw.substring(startIdx, endIdx + 1));
+                } catch (innerErr) {
+                    console.error('Failed to parse Quiz JSON with fallback:', quizDataRaw);
+                    return res.status(500).json({ error: 'AI failed to generate a valid quiz format. Please try again.' });
+                }
+            } else {
+                console.error('Failed to parse Quiz JSON:', quizDataRaw);
+                return res.status(500).json({ error: 'AI failed to generate a valid quiz format. Please try again.' });
+            }
+        }
+
+        if (!quizObj || !Array.isArray(quizObj.questions)) {
+            console.error("Quiz JSON does not contain 'questions' array:", quizObj);
+            if (Array.isArray(quizObj)) {
+                return res.json({ quiz: quizObj });
+            }
+            return res.status(500).json({ error: 'AI generated invalid quiz data structure.' });
+        }
+
+        res.json({ quiz: quizObj.questions });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/quiz/evaluate', async (req, res) => {
+    try {
+        const { questions, userAnswers } = req.body;
+        if (!questions || !userAnswers) return res.status(400).json({ error: 'Questions and userAnswers are required' });
+
+        const systemPrompt = `You are an AI Math Teacher grading a quiz. 
+         I will provide you with the original questions and the student's answers.
+         You need to evaluate if each answer is correct. 
+         Provide encouraging feedback for each question, explaining the correct answer if they got it wrong.
+         Format your response clearly using markdown.`;
+
+        const prompt = `Questions and Student Answers:\n${JSON.stringify({ questions, userAnswers }, null, 2)}`;
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        await streamResponse(prompt, systemPrompt, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Unified Voice Assistant Turn endpoint (STT -> Chat -> TTS in a single server-side sequence)
+app.post('/api/voice-assistant-turn', async (req, res) => {
+    try {
+        const { audioBase64, mimeType } = req.body;
+        if (!audioBase64) return res.status(400).json({ error: 'Audio data is required' });
+        if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+        const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+
+        // 1. Speech-To-Text (STT) via Gemini
+        const sttResponse = await fetchWithRetry(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            {
+                                inlineData: {
+                                    mimeType: mimeType || 'audio/webm',
+                                    data: audioBase64
+                                }
+                            },
+                            { text: "Transcribe the following audio accurately. Output only the exact text of the transcription without any extra words, conversational filler from yourself, or markdown formatting. If there is no speech or you cannot understand it, just output an empty string." }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.0,
+                        maxOutputTokens: 100
+                    }
+                })
+            }
+        );
+
+        if (!sttResponse.ok) {
+            const errBody = await sttResponse.json().catch(() => ({}));
+            console.error('Gemini STT error in turn:', errBody);
+            return res.status(502).json({ error: 'STT transcription failed', details: errBody });
+        }
+
+        const sttData = await sttResponse.json();
+        const userTranscript = (sttData?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+        if (!userTranscript) {
+            return res.json({ userTranscript: '', aiText: '', aiAudio: '' });
+        }
+
+        // 2. Chat generation
+        const systemPrompt = `You are Mathify, a friendly, encouraging, and highly knowledgeable AI Math Tutor. 
+        Keep your answers VERY brief, concise, and conversational, as this is for a voice call.
+        Do NOT use complex markdown, bullet points, or long explanations. Just give a short, helpful spoken response.`;
+
+        const aiText = await generateResponseNonStream(userTranscript, systemPrompt);
+
+        // 3. Text-To-Speech (TTS) via Gemini 3.1 Flash TTS
+        const cleanText = aiText
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`[^`]+`/g, '')
+            .replace(/[#*_~[\]]/g, '')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n+/g, ' ')
+            .trim()
+            .slice(0, 4000);
+
+        let aiAudioBase64 = '';
+        if (cleanText) {
+            const ttsRes = await fetchWithRetry(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: cleanText }] }],
+                        generationConfig: {
+                            responseModalities: ['AUDIO'],
+                            speechConfig: {
+                                voiceConfig: {
+                                    prebuiltVoiceConfig: { voiceName: 'Kore' }
+                                }
+                            }
+                        }
+                    })
+                }
+            );
+
+            if (ttsRes.ok) {
+                const ttsData = await ttsRes.json();
+                const inlineData = ttsData?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+                if (inlineData?.data) {
+                    const pcmBuffer = Buffer.from(inlineData.data, 'base64');
+                    const wavHeader = createWavHeader(pcmBuffer.length);
+                    const wavBuffer = Buffer.concat([wavHeader, pcmBuffer]);
+                    aiAudioBase64 = wavBuffer.toString('base64');
+                }
+            } else {
+                console.error('Gemini TTS error in turn');
+            }
+        }
+
+        res.json({
+            userTranscript,
+            aiText,
+            aiAudio: aiAudioBase64
+        });
+
+    } catch (error) {
+        console.error('Voice assistant turn error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Text-to-Speech via Gemini 3.1 Flash TTS Preview (REST, returns WAV audio)
+app.post('/api/tts', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: 'Text is required' });
+        if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+        // Strip markdown so the TTS model doesn't speak symbols aloud
+        const cleanText = text
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`[^`]+`/g, '')
+            .replace(/[#*_~[\]]/g, '')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n+/g, ' ')
+            .trim()
+            .slice(0, 4000);
+
+        if (!cleanText) return res.status(400).json({ error: 'No speakable text after cleaning' });
+
+        const ttsRes = await fetchWithRetry(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: cleanText }] }],
+                    generationConfig: {
+                        responseModalities: ['AUDIO'],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: 'Kore' }
+                            }
+                        }
+                    }
+                })
+            },
+            1, // Only 1 attempt for TTS so we don't stall the voice UI if 503 high demand
+            500
+        );
+
+        if (!ttsRes.ok) {
+            const errBody = await ttsRes.json().catch(() => ({}));
+            console.error('Gemini TTS API error:', errBody);
+            return res.status(502).json({ error: 'Gemini TTS request failed', details: errBody });
+        }
+
+        const data = await ttsRes.json();
+        const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+        if (!inlineData?.data) {
+            console.error('No audio in TTS response:', JSON.stringify(data).slice(0, 500));
+            return res.status(500).json({ error: 'Gemini TTS returned no audio data' });
+        }
+
+        // Gemini TTS returns raw PCM (audio/L16; 24kHz mono 16-bit) — wrap in WAV
+        const pcmBuffer = Buffer.from(inlineData.data, 'base64');
+        const wavHeader = createWavHeader(pcmBuffer.length);
+        const wavBuffer = Buffer.concat([wavHeader, pcmBuffer]);
+
+        res.set('Content-Type', 'audio/wav');
+        res.set('Content-Length', wavBuffer.length);
+        res.send(wavBuffer);
+
+    } catch (error) {
+        console.error('TTS endpoint error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/stt', async (req, res) => {
+    try {
+        const { audioBase64, mimeType } = req.body;
+        if (!audioBase64) return res.status(400).json({ error: 'Audio data is required' });
+        if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+        const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+        
+        const response = await fetchWithRetry(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            {
+                                inlineData: {
+                                    mimeType: mimeType || 'audio/webm',
+                                    data: audioBase64
+                                }
+                            },
+                            { text: "Transcribe the following audio accurately. Output only the exact text of the transcription without any extra words, conversational filler from yourself, or markdown formatting. If there is no speech or you cannot understand it, just output an empty string." }
+                        ]
+                    }]
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            console.error('Gemini STT API error:', errBody);
+            return res.status(502).json({ error: 'Gemini STT request failed', details: errBody });
+        }
+
+        const data = await response.json();
+        const transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        res.json({ transcript: transcript.trim() });
+    } catch (error) {
+        console.error('STT endpoint error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.listen(port, () => {
+    const { provider, model, api } = getProviderInfo();
+    console.log(`Mathify running at http://localhost:${port}`);
+    console.log(`Using ${provider} (${model}) via ${api || 'generativelanguage.googleapis.com'}`);
+});

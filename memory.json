@@ -1,0 +1,68 @@
+[
+  {
+    "id": "mem_1785267573967_812",
+    "category": "identity",
+    "fact": "User is preparing for ZIMSEC A-Level Pure Mathematics exams in November.",
+    "createdAt": "2026-07-28T19:39:33.967Z"
+  },
+  {
+    "id": "mem_manual_edit",
+    "category": "preference",
+    "fact": "User prefers study sessions at 6 AM.",
+    "createdAt": "2026-07-28T19:39:53.690Z"
+  },
+  {
+    "id": "mem_1785267660532_521",
+    "category": "study",
+    "fact": "User is preparing for ZIMSEC A-Level Pure Mathematics.",
+    "createdAt": "2026-07-28T19:41:00.532Z"
+  },
+  {
+    "id": "mem_1785269648940_239",
+    "category": "preference",
+    "fact": "User's favorite topic is calculus",
+    "createdAt": "2026-07-28T20:14:08.940Z"
+  },
+  {
+    "id": "mem_1785270073643_235",
+    "category": "identity",
+    "fact": "User is studying all subjects for O-Level (not just A-Level Pure Mathematics)",
+    "createdAt": "2026-07-28T20:21:13.643Z"
+  },
+  {
+    "id": "mem_1785272334745_166",
+    "category": "preference",
+    "fact": "User's favorite topic is quadratic equations",
+    "createdAt": "2026-07-28T20:58:54.745Z"
+  },
+  {
+    "id": "mem_1785272388644_241",
+    "category": "preference",
+    "fact": "User loves calculus so much they eat it (favorite topic alongside quadratic equations).",
+    "createdAt": "2026-07-28T20:59:48.644Z"
+  },
+  {
+    "id": "mem_1785272397689_626",
+    "category": "preference",
+    "fact": "User does not like calculus",
+    "createdAt": "2026-07-28T20:59:57.689Z"
+  },
+  {
+    "id": "mem_1785272402717_29",
+    "category": "preference",
+    "fact": "User does not like calculus",
+    "createdAt": "2026-07-28T21:00:02.717Z"
+  },
+  {
+    "id": "mem_1785272650919_590",
+    "category": "preference",
+    "fact": "User loves quadratic equations",
+    "createdAt": "2026-07-28T21:04:10.919Z"
+  },
+  {
+    "id": "mem_1785272689501_701",
+    "category": "preference",
+    "fact": "User loves numbers",
+    "createdAt": "2026-07-28T21:04:49.502Z"
+  }
+]

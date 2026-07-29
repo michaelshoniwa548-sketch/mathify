@@ -1,0 +1,20 @@
+[
+  {
+    "id": "test_notice_1",
+    "title": "Review Schedule Due",
+    "message": "You have 1 pending ZIMSEC math study review due today.",
+    "urgency": "normal",
+    "timestamp": "2026-07-28T19:41:42.499Z",
+    "dismissed": true,
+    "dismissedAt": "2026-07-28T19:41:44.026Z"
+  },
+  {
+    "id": "notice_math_reminder",
+    "title": "Math Study Schedule",
+    "message": "Reminder: You have active study goals set for ZIMSEC A-Level Mathematics.",
+    "urgency": "normal",
+    "timestamp": "2026-07-28T19:41:43.530Z",
+    "dismissed": true,
+    "dismissedAt": "2026-07-28T19:41:44.032Z"
+  }
+]

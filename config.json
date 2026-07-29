@@ -1,0 +1,26 @@
+{
+  "assistantName": "Trillion",
+  "heartbeat": {
+    "enabled": true,
+    "checkIntervalSeconds": 10,
+    "quietHours": {
+      "enabled": false,
+      "start": "22:00",
+      "end": "07:00"
+    }
+  },
+  "checks": [
+    {
+      "id": "check_pending_reminders",
+      "name": "Pending Reminders Check",
+      "intervalSeconds": 15,
+      "urgency": "normal"
+    },
+    {
+      "id": "check_study_goal_progress",
+      "name": "Math Study Progress Check",
+      "intervalSeconds": 30,
+      "urgency": "low"
+    }
+  ]
+}

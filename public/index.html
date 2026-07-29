@@ -48,13 +48,18 @@
     }
     </script>
 
-    <link rel="stylesheet" href="styles.css?v=1.5">
-    <!-- Include Marked.js for parsing markdown in AI responses -->
+    <link rel="stylesheet" href="styles.css?v=2.0">
+    <!-- Include Marked.js locally -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Include KaTeX locally -->
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css">
+    <script src="/vendor/katex/katex.min.js"></script>
+    <script src="/vendor/katex/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
+    <audio id="mathify-audio-player" style="display:none;"></audio>
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
@@ -85,10 +90,20 @@
                     </svg>
                     Generate Quiz
                 </li>
+                <li data-target="assistant-view">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                    Voice Assistant
+                </li>
             </ul>
             <div class="status-indicator">
+
                 <div class="dot online" id="api-status-dot"></div>
-                <span id="api-status-text">Ollama (llama3.2)</span>
+                <span id="api-status-text">Gemini</span>
             </div>
         </nav>
 
@@ -99,20 +114,28 @@
             <section id="chat-view" class="view active">
                 <header>
                     <h2>Mathify Tutor</h2>
-                    <p>Ask anything from basic algebra to calculus.</p>
+                    <p>Ask anything from basic algebra to calculus & ZIMSEC mathematics.</p>
                 </header>
+
                 <div class="chat-history" id="chat-history">
                     <!-- Messages will be injected here -->
                     <div class="message ai">
                         <div class="avatar"><img src="logo.png" alt="Mathify"></div>
-                        <div class="bubble">Hello! I'm Mathify, your AI Math Tutor. What shall we learn today?</div>
+                        <div class="bubble">Hello! I'm Mathify, your personal AI Math Tutor specializing in ZIMSEC and general mathematics. What shall we learn today?</div>
                     </div>
                 </div>
                 <div class="input-area">
-                    <textarea id="chat-input" placeholder="E.g., What is the Pythagorean theorem?" rows="1"></textarea>
+                    <button id="voice-chat" class="glass-btn voice-btn" title="Toggle Live Voice Call">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
+                    <textarea id="chat-input" placeholder="E.g., What is the Pythagorean theorem or solve 2x + 5 = 15" rows="1"></textarea>
                     <button id="send-chat" class="glass-btn">
-                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                            fill="none">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
                             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                         </svg>
@@ -127,7 +150,17 @@
                     <p>Enter an equation or word problem to see how to solve it.</p>
                 </header>
                 <div class="solve-input-container">
-                    <textarea id="solve-input" placeholder="E.g., Solve for x: 2x + 5 = 15" rows="2"></textarea>
+                    <div class="input-area">
+                        <button id="voice-solve" class="glass-btn voice-btn" title="Voice Input">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+                        <textarea id="solve-input" placeholder="E.g., Solve for x: 2x + 5 = 15" rows="2"></textarea>
+                    </div>
                     <button id="btn-solve" class="glow-btn">Solve Problem</button>
                 </div>
                 <div class="solve-results">
@@ -164,7 +197,17 @@
                     </div>
                     <div class="form-group">
                         <label>Add your own topics <span class="hint">(comma-separated, optional)</span></label>
-                        <input type="text" id="quiz-topic" placeholder="E.g., Matrices, Vectors, Sequences">
+                        <div class="input-area">
+                            <button id="voice-quiz-topic" class="glass-btn voice-btn" title="Voice Input">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                            </button>
+                            <input type="text" id="quiz-topic" placeholder="E.g., Matrices, Vectors, Sequences">
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -204,6 +247,38 @@
 
             </section>
 
+            <!-- VIEW 4: Trillion Voice Assistant -->
+            <section id="assistant-view" class="view hidden">
+                <div class="assistant-container">
+                    <div class="assistant-top-bar">
+                        <div class="orb-container-compact">
+                            <div class="energy-ring state-ready" id="assistant-energy-ring"></div>
+                            <canvas id="assistant-wave-canvas"></canvas>
+                            <div class="assistant-orb-compact" id="ptt-btn" title="Click or Hold Space to Speak">
+                                <div class="orb-inner"></div>
+                            </div>
+                        </div>
+                        <div class="voice-bar-info">
+                            <div class="assistant-status">
+                                <span id="assistant-state-badge" class="state-badge ready"></span>
+                                <span id="assistant-state-text">Ready</span>
+                            </div>
+                            <p class="helper-text" id="ptt-text">Hold to Speak (Space)</p>
+                        </div>
+                    </div>
+
+                    <div class="assistant-transcript">
+                        <div class="transcript-label">Trillion Conversation Feed</div>
+                        <div class="transcript-text assistant-feed" id="assistant-feed">
+                            <div class="feed-message assistant">
+                                <div class="msg-content">Hello! I am Trillion, your voice-first AI assistant. How can I help you today?</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <audio id="mathify-audio-player" style="display:none;"></audio>
+
         </main>
     </div>
 
@@ -217,7 +292,7 @@
         <p>Created by <strong>Michael Shoniwa</strong> · Mathify</p>
     </footer>
 
-    <script src="app.js?v=1.4"></script>
+    <script src="app.js?v=4.0"></script>
 </body>
 
 </html>

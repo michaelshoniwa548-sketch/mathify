@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: mathify-zimsec-tutor
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: NODE_ENV
+        value: production

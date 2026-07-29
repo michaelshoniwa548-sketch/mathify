@@ -1,0 +1,18 @@
+{
+  "ignore": [
+    "memory.json",
+    "audit_log.json",
+    "notices_queue.json",
+    "heartbeat_state.json",
+    "config.json",
+    "scratch/*",
+    ".system_generated/*",
+    "*.log"
+  ],
+  "watch": [
+    "server.js",
+    "services/*",
+    "public/*"
+  ],
+  "ext": "js,html,css"
+}

@@ -1,0 +1,51 @@
+ZIMSEC MATHEMATICS SYLLABUS & EXAM SPECIFICATIONS (ZIMBABWE SCHOOL EXAMINATIONS COUNCIL)
+
+1. ORDINARY LEVEL MATHEMATICS (Syllabus 4075 / 4008 / 4028)
+- Structure:
+  * Paper 1 (50%): Non-calculator paper. Short answer questions covering all syllabus topics.
+  * Paper 2 (50%): Structured long questions. Section A (Compulsory), Section B (Choice of 4 out of 6 questions).
+
+- Core Syllabus Topics:
+  1. Number & Operations:
+     - Sets and Venn Diagrams (Union, Intersection, Complement, Cardinality)
+     - Fractions, Decimals, Percentages, Ratios, Standard Form
+     - Indices and Logarithms (Base 10)
+     - Consumer Arithmetic: Simple & Compound Interest, Depreciation, Tax, Profit/Loss
+  2. Algebra & Graphs:
+     - Algebraic Expressions, Factorization, Expansion
+     - Solving Linear, Quadratic, and Simultaneous Equations
+     - Quadratic Formula: x = (-b ± √(b² - 4ac)) / (2a)
+     - Linear Inequalities and Regions on Graphs
+     - Function Notation f(x), Composite Functions, Inverse Functions f⁻¹(x)
+     - Linear, Quadratic, and Cubic Function Graphs
+  3. Geometry & Trigonometry:
+     - Angle Properties of Triangles, Polygons, Parallel Lines, Circle Theorems
+     - Pythagoras Theorem and Right-Angled Trigonometry (SOH CAH TOA)
+     - Sine Rule: a/sin(A) = b/sin(B) = c/sin(C)
+     - Cosine Rule: a² = b² + c² - 2bc cos(A)
+     - Area of Triangle: ½ ab sin(C)
+     - Bearings (3-digit true bearings measured clockwise from North)
+  4. Mensuration:
+     - Perimeter, Area of 2D shapes (Trapezium, Sector, Segment)
+     - Surface Area and Volume of Prisms, Cylinders, Pyramids, Cones, Spheres
+  5. Matrices & Transformations:
+     - 2x2 Matrix Multiplication, Determinant, Inverse Matrix
+     - Transformations: Translation, Reflection, Rotation, Enlargement (Center & Scale Factor)
+     - Matrix representation of transformations
+  6. Vectors & Bearings:
+     - Position Vectors, Column Vectors, Vector Geometry proofs
+  7. Statistics & Probability:
+     - Mean, Median, Mode, Grouped Frequency Tables
+     - Cumulative Frequency Curves (Ogives), Interquartile Range
+     - Probability of Single, Mutually Exclusive, and Independent Events (Tree Diagrams)
+
+2. ADVANCED LEVEL MATHEMATICS (Syllabus 6042 / 9164)
+- Modules:
+  * Pure Mathematics 1 & 2: Polynomials, Binomial Theorem, Trigonometric Identities, Calculus (Differentiation & Integration), Vectors in 3D, Complex Numbers, Differential Equations.
+  * Mechanics (Paper 3/4): Kinematics, Forces and Equilibrium, Newton's Laws, Projectiles, Friction.
+  * Statistics (Paper 5/6): Discrete and Continuous Random Variables, Normal Distribution, Hypothesis Testing, Correlation & Regression.
+
+3. ZIMSEC PEDAGOGICAL RULES FOR TUTORING:
+- Always show step-by-step working as required by ZIMSEC marking schemes (M1 for Method, A1 for Accuracy, B1 for Independent mark).
+- Remind students when Paper 1 rules apply (no calculator allowed).
+- Use metric units (m, cm, km, kg) and Zimbabwean financial context (ZWG / USD) where applicable.
