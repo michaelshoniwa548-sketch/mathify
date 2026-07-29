@@ -616,6 +616,35 @@ document.addEventListener('DOMContentLoaded', () => {
                         setVisualState('Thinking');
                         appendToolBadge(event.name, event.args);
 
+        let hasPlayedAudioThisTurn = false;
+
+        function speakTextFallback(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const clean = text
+                    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
+                    .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
+                    .replace(/\^2/g, ' squared')
+                    .replace(/[\$\{\}\\\#\*\_]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!clean) return;
+                const utterance = new SpeechSynthesisUtterance(clean);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.lang = 'en-US';
+                
+                utterance.onstart = () => setVisualState('Speaking');
+                utterance.onend = () => setVisualState('Ready');
+                utterance.onerror = () => setVisualState('Ready');
+                
+                window.speechSynthesis.speak(utterance);
+            } catch(e) {
+                setVisualState('Ready');
+            }
+        }
+
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
                         fullText += event.chunk;
@@ -623,7 +652,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                         const audioData = event.audioBase64 || event.audio;
 
-                        // Display transcript bubble TOGETHER with voice playback at the EXACT same millisecond
                         if (fullText && !assistantBubble) {
                             assistantBubble = appendFeedMessage('assistant', fullText);
                             assistantContent = assistantBubble.querySelector('.msg-content');
@@ -635,14 +663,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         if (audioData && audioPlayer) {
+                            hasPlayedAudioThisTurn = true;
                             setVisualState('Speaking');
                             audioPlayer.src = audioData;
                             audioPlayer.onended = () => setVisualState('Ready');
-                            audioPlayer.onerror = () => setVisualState('Ready');
+                            audioPlayer.onerror = () => {
+                                if (fullText) speakTextFallback(fullText);
+                                else setVisualState('Ready');
+                            };
                             audioPlayer.play().catch((err) => {
                                 console.warn('[Audio Playback Autoplay Blocked]:', err.message);
-                                setVisualState('Ready');
+                                if (fullText) speakTextFallback(fullText);
+                                else setVisualState('Ready');
                             });
+                        } else if (fullText && !hasPlayedAudioThisTurn) {
+                            speakTextFallback(fullText);
                         } else {
                             setVisualState('Ready');
                         }
@@ -656,7 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             feed.scrollTop = feed.scrollHeight;
                         }
-                        if (currentState !== 'Speaking') {
+
+                        if (!hasPlayedAudioThisTurn && fullText) {
+                            speakTextFallback(fullText);
+                        } else if (currentState !== 'Speaking') {
                             setVisualState('Ready');
                         }
                     } else if (event.type === 'error') {
@@ -932,11 +970,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
 
                             if (audioData && audioPlayer) {
+                                hasPlayedAudioThisTurn = true;
                                 setVisualState('Speaking');
                                 audioPlayer.src = audioData;
                                 audioPlayer.onended = () => setVisualState('Ready');
-                                audioPlayer.onerror = () => setVisualState('Ready');
-                                audioPlayer.play().catch(() => setVisualState('Ready'));
+                                audioPlayer.onerror = () => {
+                                    if (fullText) speakTextFallback(fullText);
+                                    else setVisualState('Ready');
+                                };
+                                audioPlayer.play().catch(() => {
+                                    if (fullText) speakTextFallback(fullText);
+                                    else setVisualState('Ready');
+                                });
+                            } else if (fullText && !hasPlayedAudioThisTurn) {
+                                speakTextFallback(fullText);
                             } else {
                                 setVisualState('Ready');
                             }
@@ -950,7 +997,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                                 feed.scrollTop = feed.scrollHeight;
                             }
-                            if (currentState !== 'Speaking') {
+                            if (!hasPlayedAudioThisTurn && fullText) {
+                                speakTextFallback(fullText);
+                            } else if (currentState !== 'Speaking') {
                                 setVisualState('Ready');
                             }
                         }
