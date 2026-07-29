@@ -813,8 +813,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // Start recorder ONCE
-            mediaRecorder.start(50);
+            // Start recorder for single clean audio blob capture
+            mediaRecorder.start();
             console.log('[PTT] Recording started.');
 
         } catch (err) {
