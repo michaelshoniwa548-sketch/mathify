@@ -815,9 +815,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (
                 err.name === 'AbortError' ||
                 activeTurnAbortController?.signal?.aborted ||
-                (err.message && (err.message.toLowerCase().includes('abort') || err.message.toLowerCase().includes('cancel')))
+                (err.message && (
+                    err.message.toLowerCase().includes('abort') || 
+                    err.message.toLowerCase().includes('cancel') ||
+                    err.message.toLowerCase().includes('user') ||
+                    err.message.toLowerCase().includes('signal')
+                ))
             ) {
-                // Intentionally canceled by user — silence completely, no error message!
+                // Intentionally canceled by user or superseded — silence completely!
                 return;
             }
             console.error('Turn error:', err);
