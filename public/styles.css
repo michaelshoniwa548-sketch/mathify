@@ -1798,5 +1798,24 @@ textarea::placeholder {
         bottom: 74px;
         max-width: calc(100vw - 24px);
     }
+
+    /* Mobile Purple Orb Touch Target */
+    .orb-container-compact {
+        width: 72px;
+        height: 72px;
+        touch-action: none;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .assistant-orb-compact {
+        width: 58px;
+        height: 58px;
+        touch-action: none;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
 }
 

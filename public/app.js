@@ -975,7 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopRecordingAndSend() {
         if (!pttActive) return;
         pttActive = false;
-        if (pttText) pttText.textContent = 'Hold to Speak (Space)';
+        updateMobilePttLabel();
         pttBtn.classList.remove('recording');
         setVisualState('Thinking');
 
@@ -1111,10 +1111,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Mouse PTT Events for existing Microphone Button
+    function updateMobilePttLabel() {
+        if (!pttText) return;
+        if (pttActive) {
+            pttText.textContent = 'Listening...';
+        } else if (window.innerWidth <= 768) {
+            pttText.textContent = 'Hold Purple Orb to Speak';
+        } else {
+            pttText.textContent = 'Hold to Speak (Space)';
+        }
+    }
+
+    window.addEventListener('resize', updateMobilePttLabel);
+    updateMobilePttLabel();
+
+    // Mouse PTT Events for existing Microphone Button / Purple Orb
     pttBtn.addEventListener('mousedown', startRecording);
     pttBtn.addEventListener('mouseup', stopRecordingAndSend);
     pttBtn.addEventListener('mouseleave', () => { if (pttActive) stopRecordingAndSend(); });
+
+    // Touch PTT Events for Mobile Purple Orb
+    const orbContainer = document.querySelector('.orb-container-compact');
+    const pttElements = [pttBtn, orbContainer].filter(Boolean);
+
+    pttElements.forEach(el => {
+        el.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startRecording();
+        }, { passive: false });
+
+        el.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopRecordingAndSend();
+        }, { passive: false });
+
+        el.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            if (pttActive) stopRecordingAndSend();
+        }, { passive: false });
+    });
 
     // Keyboard Spacebar PTT Event
     document.addEventListener('keydown', (e) => {
