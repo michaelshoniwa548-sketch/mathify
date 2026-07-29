@@ -329,10 +329,20 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
         const audioBuffers = await Promise.all(audioPromises);
         const validBuffers = audioBuffers.filter(b => b && b.length > 44);
 
-        if (validBuffers.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
+        let mergedWav = null;
+        if (validBuffers.length > 0) {
             const pcmParts = validBuffers.map(b => b.slice(44));
             const mergedPcm = Buffer.concat(pcmParts);
-            const mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
+            mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
+        } else if (fullReply.trim()) {
+            console.log('Generating fallback audio for voice turn...');
+            const fallbackBuf = await synthesizeSpeech(fullReply).catch(() => null);
+            if (fallbackBuf && fallbackBuf.length > 44) {
+                mergedWav = fallbackBuf;
+            }
+        }
+
+        if (mergedWav && mergedWav.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
             const audioOutBase64 = `data:audio/wav;base64,${mergedWav.toString('base64')}`;
             res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64: audioOutBase64 })}\n\n`);
         }
@@ -463,10 +473,20 @@ app.post('/api/trillion/turn', async (req, res) => {
         const audioBuffers = await Promise.all(audioPromises);
         const validBuffers = audioBuffers.filter(b => b && b.length > 44);
 
-        if (validBuffers.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
+        let mergedWav = null;
+        if (validBuffers.length > 0) {
             const pcmParts = validBuffers.map(b => b.slice(44));
             const mergedPcm = Buffer.concat(pcmParts);
-            const mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
+            mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
+        } else if (fullReply.trim()) {
+            console.log('Generating fallback audio for text turn...');
+            const fallbackBuf = await synthesizeSpeech(fullReply).catch(() => null);
+            if (fallbackBuf && fallbackBuf.length > 44) {
+                mergedWav = fallbackBuf;
+            }
+        }
+
+        if (mergedWav && mergedWav.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
             const audioBase64 = `data:audio/wav;base64,${mergedWav.toString('base64')}`;
             res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64 })}\n\n`);
         }
