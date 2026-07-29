@@ -280,11 +280,11 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
         // Emit transcribed text event so client displays user bubble
         res.write(`data: ${JSON.stringify({ type: 'user_text', text: userText })}\n\n`);
 
-        broadcastObserverEvent({ type: 'turn_started', text: transcribedText });
+        broadcastObserverEvent({ type: 'turn_started', text: userText });
 
         const historySnapshot = [
             ...trillionHistory,
-            { role: 'user', parts: [{ text: transcribedText.trim() }] }
+            { role: 'user', parts: [{ text: userText }] }
         ];
 
         let fullReply = '';
@@ -318,7 +318,7 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
             return;
         }
 
-        trillionHistory.push({ role: 'user', parts: [{ text: transcribedText.trim() }] });
+        trillionHistory.push({ role: 'user', parts: [{ text: userText }] });
         trillionHistory.push({ role: 'model', parts: [{ text: fullReply }] });
         if (trillionHistory.length > 20) {
             trillionHistory.splice(0, trillionHistory.length - 20);
