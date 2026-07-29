@@ -704,61 +704,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         setVisualState('Thinking');
                         appendToolBadge(event.name, event.args);
 
-    let hasPlayedAudioThisTurn = false;
-
-    function speakTextFallback(text) {
-        if (!('speechSynthesis' in window)) {
-            console.warn('[WebSpeech TTS] SpeechSynthesis unavailable.');
-            setVisualState('Ready');
-            return;
-        }
-        try {
-            window.speechSynthesis.cancel();
-            const clean = text
-                .replace(/\\times/g, ' times ')
-                .replace(/\\div/g, ' divided by ')
-                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
-                .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
-                .replace(/\^2/g, ' squared')
-                .replace(/\^3/g, ' cubed')
-                .replace(/[\$\{\}\\\#\*\_]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            if (!clean) {
-                setVisualState('Ready');
-                return;
-            }
-
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            utterance.lang = 'en-US';
-
-            const voices = window.speechSynthesis.getVoices();
-            const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
-            if (preferredVoice) utterance.voice = preferredVoice;
-
-            utterance.onstart = () => {
-                console.log('🔊 WebSpeech TTS Speaking out loud!');
-                setVisualState('Speaking');
-            };
-            utterance.onend = () => {
-                console.log('✅ WebSpeech TTS Finished.');
-                setVisualState('Ready');
-            };
-            utterance.onerror = (e) => {
-                console.warn('⚠️ WebSpeech TTS Error:', e.error);
-                setVisualState('Ready');
-            };
-
-            window.speechSynthesis.speak(utterance);
-        } catch (e) {
-            console.error('speakTextFallback exception:', e);
-            setVisualState('Ready');
-        }
-    }
-
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
                         fullText += event.chunk;
@@ -781,18 +726,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             setVisualState('Speaking');
                             audioPlayer.src = audioData;
                             audioPlayer.onended = () => setVisualState('Ready');
-                            audioPlayer.onerror = () => {
-                                if (fullText) speakTextFallback(fullText);
-                                else setVisualState('Ready');
-                            };
-                            audioPlayer.play().catch((err) => {
-                                console.warn('[Audio Playback Autoplay Blocked]:', err.message);
-                                if (fullText) speakTextFallback(fullText);
-                                else setVisualState('Ready');
-                            });
-                        } else if (fullText && !hasPlayedAudioThisTurn) {
-                            hasPlayedAudioThisTurn = true;
-                            speakTextFallback(fullText);
+                            audioPlayer.onerror = () => setVisualState('Ready');
+                            audioPlayer.play().catch(() => setVisualState('Ready'));
                         } else {
                             setVisualState('Ready');
                         }
@@ -807,10 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (feed) feed.scrollTop = feed.scrollHeight;
                         }
 
-                        if (!hasPlayedAudioThisTurn && fullText) {
-                            hasPlayedAudioThisTurn = true;
-                            speakTextFallback(fullText);
-                        } else if (currentState !== 'Speaking') {
+                        if (currentState !== 'Speaking') {
                             setVisualState('Ready');
                         }
                     } else if (event.type === 'error') {
@@ -1105,17 +1037,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 setVisualState('Speaking');
                                 audioPlayer.src = audioData;
                                 audioPlayer.onended = () => setVisualState('Ready');
-                                audioPlayer.onerror = () => {
-                                    if (fullText) speakTextFallback(fullText);
-                                    else setVisualState('Ready');
-                                };
-                                audioPlayer.play().catch(() => {
-                                    if (fullText) speakTextFallback(fullText);
-                                    else setVisualState('Ready');
-                                });
-                            } else if (fullText && !hasPlayedAudioThisTurn) {
-                                hasPlayedAudioThisTurn = true;
-                                speakTextFallback(fullText);
+                                audioPlayer.onerror = () => setVisualState('Ready');
+                                audioPlayer.play().catch(() => setVisualState('Ready'));
                             } else {
                                 setVisualState('Ready');
                             }
@@ -1129,10 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                                 if (feed) feed.scrollTop = feed.scrollHeight;
                             }
-                            if (!hasPlayedAudioThisTurn && fullText) {
-                                hasPlayedAudioThisTurn = true;
-                                speakTextFallback(fullText);
-                            } else if (currentState !== 'Speaking') {
+                            if (currentState !== 'Speaking') {
                                 setVisualState('Ready');
                             }
                         }
