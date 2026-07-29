@@ -590,7 +590,6 @@ app.post('/api/solve', async (req, res) => {
         if (!res.headersSent) res.status(500).json({ error: error.message });
     }
 });
-});
 
 // --- QUIZ GENERATION ENDPOINT ---
 app.post('/api/quiz/generate', async (req, res) => {
