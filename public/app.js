@@ -983,13 +983,16 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             mediaRecorder.onstop = async () => {
+                await new Promise(r => setTimeout(r, 100));
                 const text = pttTranscript.trim();
                 if (text) {
                     sendTurn(text);
                 } else if (audioChunks.length > 0) {
-                    await sendAudioBlobTurn(audioChunks);
+                    const chunksToSend = [...audioChunks];
                     audioChunks = [];
+                    await sendAudioBlobTurn(chunksToSend);
                 } else {
+                    console.warn('[PTT] No audio chunks captured.');
                     setVisualState('Ready');
                 }
 
@@ -999,8 +1002,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // Start recorder for single clean audio blob capture
-            mediaRecorder.start();
+            // Start recorder with 100ms timeslice for continuous mobile audio chunk flushing
+            mediaRecorder.start(100);
             console.log('[PTT] Recording started successfully.');
 
         } catch (err) {
