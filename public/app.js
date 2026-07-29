@@ -762,25 +762,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
                         fullText += event.chunk;
-                        if (!assistantBubble) {
-                            assistantBubble = appendFeedMessage('assistant', fullText);
-                            assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
-                        } else if (assistantContent) {
-                            assistantContent.innerHTML = marked.parse(fullText);
-                        }
-                        if (feed) feed.scrollTop = feed.scrollHeight;
 
                     } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                         const audioData = event.audioBase64 || event.audio;
 
                         if (fullText && !assistantBubble) {
                             assistantBubble = appendFeedMessage('assistant', fullText);
-                            assistantContent = assistantBubble.querySelector('.msg-content');
+                            assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
                             if (assistantContent) {
                                 assistantContent.innerHTML = marked.parse(fullText);
                                 renderMath(assistantContent);
                             }
-                            feed.scrollTop = feed.scrollHeight;
+                            if (feed) feed.scrollTop = feed.scrollHeight;
                         }
 
                         if (audioData && audioPlayer) {
@@ -798,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 else setVisualState('Ready');
                             });
                         } else if (fullText && !hasPlayedAudioThisTurn) {
+                            hasPlayedAudioThisTurn = true;
                             speakTextFallback(fullText);
                         } else {
                             setVisualState('Ready');
@@ -805,15 +799,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (event.type === 'done') {
                         if (fullText && !assistantBubble) {
                             assistantBubble = appendFeedMessage('assistant', fullText);
-                            assistantContent = assistantBubble.querySelector('.msg-content');
+                            assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
                             if (assistantContent) {
                                 assistantContent.innerHTML = marked.parse(fullText);
                                 renderMath(assistantContent);
                             }
-                            feed.scrollTop = feed.scrollHeight;
+                            if (feed) feed.scrollTop = feed.scrollHeight;
                         }
 
                         if (!hasPlayedAudioThisTurn && fullText) {
+                            hasPlayedAudioThisTurn = true;
                             speakTextFallback(fullText);
                         } else if (currentState !== 'Speaking') {
                             setVisualState('Ready');
@@ -1090,13 +1085,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (event.type === 'text') {
                             setVisualState('Thinking');
                             fullText += event.chunk;
-                            if (!assistantBubble) {
-                                assistantBubble = appendFeedMessage('assistant', fullText);
-                                assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
-                            } else if (assistantContent) {
-                                assistantContent.innerHTML = marked.parse(fullText);
-                            }
-                            if (feed) feed.scrollTop = feed.scrollHeight;
 
                         } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                             const audioData = event.audioBase64 || event.audio;
@@ -1104,12 +1092,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Display transcript bubble TOGETHER with voice playback at the EXACT same millisecond
                             if (fullText && !assistantBubble) {
                                 assistantBubble = appendFeedMessage('assistant', fullText);
-                                assistantContent = assistantBubble.querySelector('.msg-content');
+                                assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
                                 if (assistantContent) {
                                     assistantContent.innerHTML = marked.parse(fullText);
                                     renderMath(assistantContent);
                                 }
-                                feed.scrollTop = feed.scrollHeight;
+                                if (feed) feed.scrollTop = feed.scrollHeight;
                             }
 
                             if (audioData && audioPlayer) {
@@ -1126,6 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     else setVisualState('Ready');
                                 });
                             } else if (fullText && !hasPlayedAudioThisTurn) {
+                                hasPlayedAudioThisTurn = true;
                                 speakTextFallback(fullText);
                             } else {
                                 setVisualState('Ready');
@@ -1133,14 +1122,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (event.type === 'done') {
                             if (fullText && !assistantBubble) {
                                 assistantBubble = appendFeedMessage('assistant', fullText);
-                                assistantContent = assistantBubble.querySelector('.msg-content');
+                                assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
                                 if (assistantContent) {
                                     assistantContent.innerHTML = marked.parse(fullText);
                                     renderMath(assistantContent);
                                 }
-                                feed.scrollTop = feed.scrollHeight;
+                                if (feed) feed.scrollTop = feed.scrollHeight;
                             }
                             if (!hasPlayedAudioThisTurn && fullText) {
+                                hasPlayedAudioThisTurn = true;
                                 speakTextFallback(fullText);
                             } else if (currentState !== 'Speaking') {
                                 setVisualState('Ready');
