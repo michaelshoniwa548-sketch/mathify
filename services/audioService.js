@@ -43,12 +43,13 @@ async function transcribeAudio(audioBuffer, mimeType = 'audio/wav') {
 
     try {
         const base64Audio = audioBuffer.toString('base64');
+        const cleanMime = (mimeType || 'audio/webm').split(';')[0];
         const responseStream = await ai.models.generateContentStream({
             model: STT_MODEL,
             contents: [
                 {
                     inlineData: {
-                        mimeType: mimeType,
+                        mimeType: cleanMime,
                         data: base64Audio
                     }
                 },

@@ -950,21 +950,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. MediaRecorder Audio Stream with noise suppression and 16kbps compression
+        // 2. MediaRecorder Audio Stream with cross-platform mobile compatibility (iOS Safari + Android)
         try {
             audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
+                audio: true
             });
 
-            const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 }
-                : { audioBitsPerSecond: 16000 };
+            let options = {};
+            try {
+                if (typeof MediaRecorder.isTypeSupported === 'function') {
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        options = { mimeType: 'audio/webm;codecs=opus' };
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        options = { mimeType: 'audio/mp4' };
+                    } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+                        options = { mimeType: 'audio/aac' };
+                    }
+                }
+            } catch(e) {}
 
-            mediaRecorder = new MediaRecorder(audioStream, options);
+            try {
+                mediaRecorder = new MediaRecorder(audioStream, options);
+            } catch(e) {
+                console.warn('[PTT] MediaRecorder options failed, falling back to default:', e.message);
+                mediaRecorder = new MediaRecorder(audioStream);
+            }
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
@@ -991,10 +1001,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Start recorder for single clean audio blob capture
             mediaRecorder.start();
-            console.log('[PTT] Recording started.');
+            console.log('[PTT] Recording started successfully.');
 
         } catch (err) {
-            console.warn('[PTT] MediaRecorder mic error:', err);
+            console.warn('[PTT] MediaRecorder mic access error:', err);
+            appendFeedMessage('system', 'Microphone access is blocked or unavailable. Please check mobile browser mic permissions.');
+            setVisualState('Ready');
         }
     }
 
