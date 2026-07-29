@@ -704,34 +704,60 @@ document.addEventListener('DOMContentLoaded', () => {
                         setVisualState('Thinking');
                         appendToolBadge(event.name, event.args);
 
-        let hasPlayedAudioThisTurn = false;
+    let hasPlayedAudioThisTurn = false;
 
-        function speakTextFallback(text) {
-            if (!('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                const clean = text
-                    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
-                    .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
-                    .replace(/\^2/g, ' squared')
-                    .replace(/[\$\{\}\\\#\*\_]/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-                if (!clean) return;
-                const utterance = new SpeechSynthesisUtterance(clean);
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
-                utterance.lang = 'en-US';
-                
-                utterance.onstart = () => setVisualState('Speaking');
-                utterance.onend = () => setVisualState('Ready');
-                utterance.onerror = () => setVisualState('Ready');
-                
-                window.speechSynthesis.speak(utterance);
-            } catch(e) {
-                setVisualState('Ready');
-            }
+    function speakTextFallback(text) {
+        if (!('speechSynthesis' in window)) {
+            console.warn('[WebSpeech TTS] SpeechSynthesis unavailable.');
+            setVisualState('Ready');
+            return;
         }
+        try {
+            window.speechSynthesis.cancel();
+            const clean = text
+                .replace(/\\times/g, ' times ')
+                .replace(/\\div/g, ' divided by ')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
+                .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
+                .replace(/\^2/g, ' squared')
+                .replace(/\^3/g, ' cubed')
+                .replace(/[\$\{\}\\\#\*\_]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!clean) {
+                setVisualState('Ready');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.lang = 'en-US';
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onstart = () => {
+                console.log('🔊 WebSpeech TTS Speaking out loud!');
+                setVisualState('Speaking');
+            };
+            utterance.onend = () => {
+                console.log('✅ WebSpeech TTS Finished.');
+                setVisualState('Ready');
+            };
+            utterance.onerror = (e) => {
+                console.warn('⚠️ WebSpeech TTS Error:', e.error);
+                setVisualState('Ready');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            console.error('speakTextFallback exception:', e);
+            setVisualState('Ready');
+        }
+    }
 
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
@@ -1114,40 +1140,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMobilePttLabel() {
         if (!pttText) return;
         if (pttActive) {
-            pttText.textContent = 'Listening...';
+            pttText.textContent = 'Listening... Tap orb when done';
         } else if (window.innerWidth <= 768) {
-            pttText.textContent = 'Hold Purple Orb to Speak';
+            pttText.textContent = 'Tap Purple Orb to Speak';
         } else {
-            pttText.textContent = 'Hold to Speak (Space)';
+            pttText.textContent = 'Tap Orb or Hold Space to Speak';
         }
     }
 
     window.addEventListener('resize', updateMobilePttLabel);
     updateMobilePttLabel();
 
-    // Mouse PTT Events for existing Microphone Button / Purple Orb
-    pttBtn.addEventListener('mousedown', startRecording);
-    pttBtn.addEventListener('mouseup', stopRecordingAndSend);
-    pttBtn.addEventListener('mouseleave', () => { if (pttActive) stopRecordingAndSend(); });
+    function handleOrbTapToggle(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        unlockBrowserAudio();
 
-    // Touch PTT Events for Mobile Purple Orb
+        if (!pttActive) {
+            startRecording();
+            updateMobilePttLabel();
+        } else {
+            stopRecordingAndSend();
+        }
+    }
+
     const orbContainer = document.querySelector('.orb-container-compact');
     const pttElements = [pttBtn, orbContainer].filter(Boolean);
 
     pttElements.forEach(el => {
+        el.addEventListener('click', handleOrbTapToggle);
         el.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            startRecording();
-        }, { passive: false });
-
-        el.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            stopRecordingAndSend();
-        }, { passive: false });
-
-        el.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            if (pttActive) stopRecordingAndSend();
+            handleOrbTapToggle(e);
         }, { passive: false });
     });
 
