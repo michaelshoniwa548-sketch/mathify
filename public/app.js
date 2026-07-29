@@ -639,6 +639,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function speakTextFallback(text) {
+        if (!('speechSynthesis' in window)) {
+            setVisualState('Ready');
+            return;
+        }
+        try {
+            window.speechSynthesis.cancel();
+            const clean = text
+                .replace(/\\times/g, ' times ')
+                .replace(/\\div/g, ' divided by ')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
+                .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
+                .replace(/\^2/g, ' squared')
+                .replace(/\^3/g, ' cubed')
+                .replace(/[\$\{\}\\\#\*\_]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!clean) {
+                setVisualState('Ready');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.lang = 'en-US';
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onstart = () => setVisualState('Speaking');
+            utterance.onend = () => setVisualState('Ready');
+            utterance.onerror = () => setVisualState('Ready');
+
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            setVisualState('Ready');
+        }
+    }
+
     // --- Send Turn to Backend (SSE streaming) ---
     async function sendTurn(userInput) {
         if (!userInput || !userInput.trim()) return;
@@ -659,6 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let assistantBubble = null;
         let assistantContent = null;
         let fullText = '';
+        let hasPlayedAudioThisTurn = false;
 
         try {
             const res = await fetch('/api/trillion/turn', {
@@ -703,50 +746,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (event.type === 'tool') {
                         setVisualState('Thinking');
                         appendToolBadge(event.name, event.args);
-
-    let hasPlayedAudioThisTurn = false;
-
-    function speakTextFallback(text) {
-        if (!('speechSynthesis' in window)) {
-            setVisualState('Ready');
-            return;
-        }
-        try {
-            window.speechSynthesis.cancel();
-            const clean = text
-                .replace(/\\times/g, ' times ')
-                .replace(/\\div/g, ' divided by ')
-                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
-                .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
-                .replace(/\^2/g, ' squared')
-                .replace(/\^3/g, ' cubed')
-                .replace(/[\$\{\}\\\#\*\_]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            if (!clean) {
-                setVisualState('Ready');
-                return;
-            }
-
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            utterance.lang = 'en-US';
-
-            const voices = window.speechSynthesis.getVoices();
-            const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
-            if (preferredVoice) utterance.voice = preferredVoice;
-
-            utterance.onstart = () => setVisualState('Speaking');
-            utterance.onend = () => setVisualState('Ready');
-            utterance.onerror = () => setVisualState('Ready');
-
-            window.speechSynthesis.speak(utterance);
-        } catch (e) {
-            setVisualState('Ready');
-        }
-    }
 
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
@@ -1055,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let assistantBubble = null;
                 let assistantContent = null;
                 let fullText = '';
+                let hasPlayedAudioThisTurn = false;
 
                 while (true) {
                     const { done, value } = await streamReader.read();
