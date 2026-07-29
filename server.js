@@ -295,23 +295,9 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
             const textChunk = typeof chunk === 'string' ? chunk : (chunk.text || '');
             if (textChunk && !res.writableEnded) {
                 fullReply += textChunk;
-                sentenceBuffer += textChunk;
                 res.write(`data: ${JSON.stringify({ type: 'text', chunk: textChunk })}\n\n`);
                 if (typeof res.flush === 'function') res.flush();
-
-                const match = sentenceBuffer.match(/^([\s\S]+?[.?!])\s+([\s\S]*)$/);
-                if (match) {
-                    const sentenceText = match[1].trim();
-                    sentenceBuffer = match[2];
-                    if (sentenceText) {
-                        audioPromises.push(synthesizeSpeech(sentenceText).catch(() => Buffer.alloc(0)));
-                    }
-                }
             }
-        }
-
-        if (sentenceBuffer.trim()) {
-            audioPromises.push(synthesizeSpeech(sentenceBuffer.trim()).catch(() => Buffer.alloc(0)));
         }
 
         if (currentActiveTurnId !== thisTurnId || req.aborted || req.socket.destroyed) {
@@ -325,26 +311,13 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
             trillionHistory.splice(0, trillionHistory.length - 20);
         }
 
-        // Await parallel sentence TTS buffers
-        const audioBuffers = await Promise.all(audioPromises);
-        const validBuffers = audioBuffers.filter(b => b && b.length > 44);
-
-        let mergedWav = null;
-        if (validBuffers.length > 0) {
-            const pcmParts = validBuffers.map(b => b.slice(44));
-            const mergedPcm = Buffer.concat(pcmParts);
-            mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
-        } else if (fullReply.trim()) {
-            console.log('Generating fallback audio for voice turn...');
-            const fallbackBuf = await synthesizeSpeech(fullReply).catch(() => null);
-            if (fallbackBuf && fallbackBuf.length > 44) {
-                mergedWav = fallbackBuf;
+        // Synthesize full-formed audio for the complete reply to guarantee 100% sentence completion
+        if (fullReply.trim() && !res.writableEnded && currentActiveTurnId === thisTurnId) {
+            const audioBuf = await synthesizeSpeech(fullReply).catch(() => null);
+            if (audioBuf && audioBuf.length > 44) {
+                const audioOutBase64 = `data:audio/wav;base64,${audioBuf.toString('base64')}`;
+                res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64: audioOutBase64 })}\n\n`);
             }
-        }
-
-        if (mergedWav && mergedWav.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
-            const audioOutBase64 = `data:audio/wav;base64,${mergedWav.toString('base64')}`;
-            res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64: audioOutBase64 })}\n\n`);
         }
 
         if (!res.writableEnded) {
@@ -439,23 +412,9 @@ app.post('/api/trillion/turn', async (req, res) => {
             const textChunk = typeof chunk === 'string' ? chunk : (chunk.text || '');
             if (textChunk && !res.writableEnded) {
                 fullReply += textChunk;
-                sentenceBuffer += textChunk;
                 res.write(`data: ${JSON.stringify({ type: 'text', chunk: textChunk })}\n\n`);
                 if (typeof res.flush === 'function') res.flush();
-
-                const match = sentenceBuffer.match(/^([\s\S]+?[.?!])\s+([\s\S]*)$/);
-                if (match) {
-                    const sentenceText = match[1].trim();
-                    sentenceBuffer = match[2];
-                    if (sentenceText) {
-                        audioPromises.push(synthesizeSpeech(sentenceText).catch(() => Buffer.alloc(0)));
-                    }
-                }
             }
-        }
-
-        if (sentenceBuffer.trim()) {
-            audioPromises.push(synthesizeSpeech(sentenceBuffer.trim()).catch(() => Buffer.alloc(0)));
         }
 
         if (currentActiveTurnId !== thisTurnId || req.aborted || req.socket.destroyed) {
@@ -469,26 +428,13 @@ app.post('/api/trillion/turn', async (req, res) => {
             trillionHistory.splice(0, trillionHistory.length - 20);
         }
 
-        // Await parallel sentence TTS buffers
-        const audioBuffers = await Promise.all(audioPromises);
-        const validBuffers = audioBuffers.filter(b => b && b.length > 44);
-
-        let mergedWav = null;
-        if (validBuffers.length > 0) {
-            const pcmParts = validBuffers.map(b => b.slice(44));
-            const mergedPcm = Buffer.concat(pcmParts);
-            mergedWav = pcmToWav(mergedPcm, 24000, 1, 16);
-        } else if (fullReply.trim()) {
-            console.log('Generating fallback audio for text turn...');
-            const fallbackBuf = await synthesizeSpeech(fullReply).catch(() => null);
-            if (fallbackBuf && fallbackBuf.length > 44) {
-                mergedWav = fallbackBuf;
+        // Synthesize full-formed audio for the complete reply to guarantee 100% sentence completion
+        if (fullReply.trim() && !res.writableEnded && currentActiveTurnId === thisTurnId) {
+            const audioBuf = await synthesizeSpeech(fullReply).catch(() => null);
+            if (audioBuf && audioBuf.length > 44) {
+                const audioBase64 = `data:audio/wav;base64,${audioBuf.toString('base64')}`;
+                res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64 })}\n\n`);
             }
-        }
-
-        if (mergedWav && mergedWav.length > 0 && !res.writableEnded && currentActiveTurnId === thisTurnId) {
-            const audioBase64 = `data:audio/wav;base64,${mergedWav.toString('base64')}`;
-            res.write(`data: ${JSON.stringify({ type: 'audio', audioBase64 })}\n\n`);
         }
 
         if (!res.writableEnded) {
