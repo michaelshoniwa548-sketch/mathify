@@ -774,19 +774,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. MediaRecorder Audio Stream with 16kbps compression for instant network upload
+        // 2. MediaRecorder Audio Stream with noise suppression and 16kbps compression
         try {
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+
             const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
                 ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 }
                 : { audioBitsPerSecond: 16000 };
+
             mediaRecorder = new MediaRecorder(audioStream, options);
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data && e.data.size > 0) audioChunks.push(e.data);
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
             };
+
+            mediaRecorder.onstop = async () => {
+                const text = pttTranscript.trim();
+                if (text) {
+                    sendTurn(text);
+                } else if (audioChunks.length > 0) {
+                    await sendAudioBlobTurn(audioChunks);
+                    audioChunks = [];
+                } else {
+                    setVisualState('Ready');
+                }
+
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                    audioStream = null;
+                }
+            };
+
+            // Start recorder ONCE
             mediaRecorder.start(50);
+            console.log('[PTT] Recording started.');
+
         } catch (err) {
-            console.warn('[PTT] MediaRecorder mic error:', err.message);
+            console.warn('[PTT] MediaRecorder mic error:', err);
         }
     }
 
@@ -797,29 +829,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pttBtn.classList.remove('recording');
         setVisualState('Thinking');
 
-        if (pttRecognition) {
-            try { pttRecognition.stop(); } catch (e) {}
-        }
+        try {
+            if (pttRecognition) pttRecognition.stop();
+        } catch (e) {}
 
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            try { mediaRecorder.stop(); } catch (e) {}
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
         }
-
-        if (audioStream) {
-            audioStream.getTracks().forEach(t => t.stop());
-            audioStream = null;
-        }
-
-        setTimeout(async () => {
-            const text = pttTranscript.trim();
-            if (text) {
-                sendTurn(text);
-            } else if (audioChunks && audioChunks.length > 0) {
-                sendAudioBlobTurn(audioChunks);
-            } else {
-                setVisualState('Ready');
-            }
-        }, 50);
     }
 
     async function sendAudioBlobTurn(chunks) {
