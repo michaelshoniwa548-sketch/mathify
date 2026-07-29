@@ -1186,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastTouchTime = now;
         }
 
-        unlockBrowserAudio();
+        unlockAudio();
 
         if (!pttActive) {
             startRecording();
@@ -1197,10 +1197,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const orbContainer = document.querySelector('.orb-container-compact');
-    const pttElements = [pttBtn, orbContainer].filter(Boolean);
 
-    pttElements.forEach(el => {
-        el.addEventListener('click', handleOrbTapToggle);
+    // PC Mouse Press & Hold Events
+    if (pttBtn) {
+        pttBtn.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            unlockAudio();
+            startRecording();
+        });
+
+        pttBtn.addEventListener('mouseup', () => {
+            if (pttActive) stopRecordingAndSend();
+        });
+
+        pttBtn.addEventListener('mouseleave', () => {
+            if (pttActive) stopRecordingAndSend();
+        });
+    }
+
+    // Touch & Click Toggle Events for PC & Mobile Orbs
+    [pttBtn, orbContainer].filter(Boolean).forEach(el => {
         el.addEventListener('touchstart', handleOrbTapToggle, { passive: false });
     });
 
