@@ -617,20 +617,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         appendToolBadge(event.name, event.args);
 
                     } else if (event.type === 'text') {
-                        if (!assistantBubble) {
-                            assistantBubble = appendFeedMessage('assistant', '');
-                            assistantBubble.dataset.streaming = 'true';
-                            assistantContent = assistantBubble.querySelector('.msg-content');
-                        }
                         setVisualState('Thinking');
                         fullText += event.chunk;
-                        assistantContent.innerHTML = marked.parse(fullText);
-                        renderMath(assistantContent);
-                        feed.scrollTop = feed.scrollHeight;
 
                     } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
-                        if (assistantBubble) delete assistantBubble.dataset.streaming;
                         const audioData = event.audioBase64 || event.audio;
+
+                        // Display transcript bubble TOGETHER with voice playback at the EXACT same millisecond
+                        if (fullText && !assistantBubble) {
+                            assistantBubble = appendFeedMessage('assistant', fullText);
+                            assistantContent = assistantBubble.querySelector('.msg-content');
+                            if (assistantContent) {
+                                assistantContent.innerHTML = marked.parse(fullText);
+                                renderMath(assistantContent);
+                            }
+                            feed.scrollTop = feed.scrollHeight;
+                        }
 
                         if (audioData && audioPlayer) {
                             setVisualState('Speaking');
@@ -645,7 +647,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             setVisualState('Ready');
                         }
                     } else if (event.type === 'done') {
-                        if (assistantBubble) delete assistantBubble.dataset.streaming;
+                        if (fullText && !assistantBubble) {
+                            assistantBubble = appendFeedMessage('assistant', fullText);
+                            assistantContent = assistantBubble.querySelector('.msg-content');
+                            if (assistantContent) {
+                                assistantContent.innerHTML = marked.parse(fullText);
+                                renderMath(assistantContent);
+                            }
+                            feed.scrollTop = feed.scrollHeight;
+                        }
                         if (currentState !== 'Speaking') {
                             setVisualState('Ready');
                         }
@@ -880,20 +890,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             appendToolBadge(event.name, event.args);
 
                         } else if (event.type === 'text') {
-                            if (!assistantBubble) {
-                                assistantBubble = appendFeedMessage('assistant', '');
-                                assistantBubble.dataset.streaming = 'true';
-                                assistantContent = assistantBubble.querySelector('.msg-content');
-                            }
                             setVisualState('Thinking');
                             fullText += event.chunk;
-                            assistantContent.innerHTML = marked.parse(fullText);
-                            renderMath(assistantContent);
-                            feed.scrollTop = feed.scrollHeight;
 
                         } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
-                            if (assistantBubble) delete assistantBubble.dataset.streaming;
                             const audioData = event.audioBase64 || event.audio;
+
+                            // Display transcript bubble TOGETHER with voice playback at the EXACT same millisecond
+                            if (fullText && !assistantBubble) {
+                                assistantBubble = appendFeedMessage('assistant', fullText);
+                                assistantContent = assistantBubble.querySelector('.msg-content');
+                                if (assistantContent) {
+                                    assistantContent.innerHTML = marked.parse(fullText);
+                                    renderMath(assistantContent);
+                                }
+                                feed.scrollTop = feed.scrollHeight;
+                            }
 
                             if (audioData && audioPlayer) {
                                 setVisualState('Speaking');
@@ -905,7 +917,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                 setVisualState('Ready');
                             }
                         } else if (event.type === 'done') {
-                            if (assistantBubble) delete assistantBubble.dataset.streaming;
+                            if (fullText && !assistantBubble) {
+                                assistantBubble = appendFeedMessage('assistant', fullText);
+                                assistantContent = assistantBubble.querySelector('.msg-content');
+                                if (assistantContent) {
+                                    assistantContent.innerHTML = marked.parse(fullText);
+                                    renderMath(assistantContent);
+                                }
+                                feed.scrollTop = feed.scrollHeight;
+                            }
                             if (currentState !== 'Speaking') {
                                 setVisualState('Ready');
                             }
