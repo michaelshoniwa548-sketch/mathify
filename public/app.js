@@ -1163,11 +1163,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', updateMobilePttLabel);
     updateMobilePttLabel();
 
+    let lastTouchTime = 0;
+
     function handleOrbTapToggle(e) {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
         }
+
+        const now = Date.now();
+        if (e.type === 'click' && (now - lastTouchTime < 500)) {
+            return;
+        }
+        if (e.type === 'touchstart') {
+            lastTouchTime = now;
+        }
+
         unlockBrowserAudio();
 
         if (!pttActive) {
@@ -1183,10 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pttElements.forEach(el => {
         el.addEventListener('click', handleOrbTapToggle);
-        el.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleOrbTapToggle(e);
-        }, { passive: false });
+        el.addEventListener('touchstart', handleOrbTapToggle, { passive: false });
     });
 
     // Keyboard Spacebar PTT Event

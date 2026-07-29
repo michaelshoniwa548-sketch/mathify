@@ -1759,20 +1759,21 @@ textarea::placeholder {
         font-size: 1.6rem !important;
         font-weight: 800 !important;
         color: #ffffff !important;
-        text-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 35px rgba(0, 255, 255, 0.6), 0 0 50px rgba(168, 85, 247, 0.4) !important;
-        letter-spacing: 0.5px;
+        text-shadow: none !important;
+        letter-spacing: 0.2px;
     }
 
     .view header p {
         color: #e2e8f0 !important;
         font-size: 0.9rem !important;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        text-shadow: none !important;
     }
 
     .transcript-label, .solve-input-container label, .form-group label {
-        color: #c084fc !important;
-        text-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+        color: #ffffff !important;
+        text-shadow: none !important;
         font-weight: 700 !important;
+        letter-spacing: 0.5px;
     }
 
     /* Chat & Input Area */
