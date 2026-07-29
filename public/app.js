@@ -762,6 +762,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
                         fullText += event.chunk;
+                        if (!assistantBubble) {
+                            assistantBubble = appendFeedMessage('assistant', fullText);
+                            assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
+                        } else if (assistantContent) {
+                            assistantContent.innerHTML = marked.parse(fullText);
+                        }
+                        if (feed) feed.scrollTop = feed.scrollHeight;
 
                     } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                         const audioData = event.audioBase64 || event.audio;
@@ -1083,6 +1090,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (event.type === 'text') {
                             setVisualState('Thinking');
                             fullText += event.chunk;
+                            if (!assistantBubble) {
+                                assistantBubble = appendFeedMessage('assistant', fullText);
+                                assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
+                            } else if (assistantContent) {
+                                assistantContent.innerHTML = marked.parse(fullText);
+                            }
+                            if (feed) feed.scrollTop = feed.scrollHeight;
 
                         } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                             const audioData = event.audioBase64 || event.audio;

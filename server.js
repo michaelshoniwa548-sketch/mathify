@@ -266,8 +266,9 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
 
         if (currentActiveTurnId !== thisTurnId) return;
 
-        if (!transcribedText || !transcribedText.trim()) {
-            return res.status(200).json({ status: 'ignored', message: 'No speech detected' });
+        let userText = (transcribedText || '').trim();
+        if (!userText) {
+            userText = "Please ask your ZIMSEC math question.";
         }
 
         res.setHeader('Content-Type', 'text/event-stream');
@@ -277,7 +278,7 @@ app.post('/api/trillion/voice-turn', async (req, res) => {
         res.flushHeaders?.();
 
         // Emit transcribed text event so client displays user bubble
-        res.write(`data: ${JSON.stringify({ type: 'user_text', text: transcribedText })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'user_text', text: userText })}\n\n`);
 
         broadcastObserverEvent({ type: 'turn_started', text: transcribedText });
 
