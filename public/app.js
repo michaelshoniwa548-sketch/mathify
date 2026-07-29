@@ -763,14 +763,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. MediaRecorder Audio Stream (for Gemini Flash STT fallback)
+        // 2. MediaRecorder Audio Stream with 16kbps compression for instant network upload
         try {
             audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(audioStream);
+            const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 }
+                : { audioBitsPerSecond: 16000 };
+            mediaRecorder = new MediaRecorder(audioStream, options);
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data && e.data.size > 0) audioChunks.push(e.data);
             };
-            mediaRecorder.start(100);
+            mediaRecorder.start(50);
         } catch (err) {
             console.warn('[PTT] MediaRecorder mic error:', err.message);
         }
@@ -787,12 +790,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try { pttRecognition.stop(); } catch (e) {}
         }
 
-        let recStopped = false;
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            try {
-                mediaRecorder.onstop = () => { recStopped = true; };
-                mediaRecorder.stop();
-            } catch (e) {}
+            try { mediaRecorder.stop(); } catch (e) {}
         }
 
         if (audioStream) {
@@ -809,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 setVisualState('Ready');
             }
-        }, 400);
+        }, 50);
     }
 
     async function sendAudioBlobTurn(chunks) {
