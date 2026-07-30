@@ -639,6 +639,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function speakTextFallback(text) {
+        if (!('speechSynthesis' in window)) {
+            setVisualState('Ready');
+            return;
+        }
+        try {
+            window.speechSynthesis.cancel();
+            const clean = text
+                .replace(/\\times/g, ' times ')
+                .replace(/\\div/g, ' divided by ')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
+                .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
+                .replace(/\^2/g, ' squared')
+                .replace(/\^3/g, ' cubed')
+                .replace(/[\$\{\}\\\#\*\_]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!clean) {
+                setVisualState('Ready');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.lang = 'en-US';
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onstart = () => setVisualState('Speaking');
+            utterance.onend = () => setVisualState('Ready');
+            utterance.onerror = () => setVisualState('Ready');
+
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            setVisualState('Ready');
+        }
+    }
+
     // --- Send Turn to Backend (SSE streaming) ---
     async function sendTurn(userInput) {
         if (!userInput || !userInput.trim()) return;
@@ -727,8 +769,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             setVisualState('Speaking');
                             audioPlayer.src = audioData;
                             audioPlayer.onended = () => setVisualState('Ready');
-                            audioPlayer.onerror = () => setVisualState('Ready');
-                            audioPlayer.play().catch(() => setVisualState('Ready'));
+                            audioPlayer.onerror = () => {
+                                if (fullText) speakTextFallback(fullText);
+                                else setVisualState('Ready');
+                            };
+                            audioPlayer.play().catch((err) => {
+                                console.warn('[Audio Autoplay Blocked]:', err.message);
+                                if (fullText) speakTextFallback(fullText);
+                                else setVisualState('Ready');
+                            });
+                        } else if (fullText && !hasPlayedAudioThisTurn) {
+                            hasPlayedAudioThisTurn = true;
+                            speakTextFallback(fullText);
                         } else {
                             setVisualState('Ready');
                         }
@@ -743,7 +795,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (feed) feed.scrollTop = feed.scrollHeight;
                         }
 
-                        if (currentState !== 'Speaking') {
+                        if (!hasPlayedAudioThisTurn && fullText) {
+                            hasPlayedAudioThisTurn = true;
+                            speakTextFallback(fullText);
+                        } else if (currentState !== 'Speaking') {
                             setVisualState('Ready');
                         }
                     } else if (event.type === 'error') {
@@ -1044,8 +1099,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                 setVisualState('Speaking');
                                 audioPlayer.src = audioData;
                                 audioPlayer.onended = () => setVisualState('Ready');
-                                audioPlayer.onerror = () => setVisualState('Ready');
-                                audioPlayer.play().catch(() => setVisualState('Ready'));
+                                audioPlayer.onerror = () => {
+                                    if (fullText) speakTextFallback(fullText);
+                                    else setVisualState('Ready');
+                                };
+                                audioPlayer.play().catch((err) => {
+                                    console.warn('[Audio Autoplay Blocked]:', err.message);
+                                    if (fullText) speakTextFallback(fullText);
+                                    else setVisualState('Ready');
+                                });
+                            } else if (fullText && !hasPlayedAudioThisTurn) {
+                                hasPlayedAudioThisTurn = true;
+                                speakTextFallback(fullText);
                             } else {
                                 setVisualState('Ready');
                             }
@@ -1059,7 +1124,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                                 if (feed) feed.scrollTop = feed.scrollHeight;
                             }
-                            if (currentState !== 'Speaking') {
+                            if (!hasPlayedAudioThisTurn && fullText) {
+                                hasPlayedAudioThisTurn = true;
+                                speakTextFallback(fullText);
+                            } else if (currentState !== 'Speaking') {
                                 setVisualState('Ready');
                             }
                         }

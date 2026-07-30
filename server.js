@@ -935,13 +935,24 @@ wss.on('connection', (ws) => {
             return;
         }
 
-        const prompt = msg.prompt || msg.text || '';
-        if (!prompt.trim()) return;
+        let userPrompt = msg.prompt || msg.text || '';
+        if (msg.audioBase64) {
+            try {
+                const audioBuf = Buffer.from(msg.audioBase64.replace(/^data:audio\/\w+;base64,/, ''), 'base64');
+                const transcribed = await transcribeAudio(audioBuf, msg.mimeType || 'audio/webm');
+                if (transcribed && transcribed.trim()) {
+                    userPrompt = transcribed.trim();
+                }
+            } catch(e) {}
+        }
+        if (!userPrompt.trim()) {
+            userPrompt = "Please ask your ZIMSEC math question.";
+        }
 
-        trillionHistory.push({ role: 'user', parts: [{ text: prompt.trim() }] });
+        trillionHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
 
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'start' }));
+            ws.send(JSON.stringify({ type: 'user_text', text: userPrompt }));
         }
 
         let fullReply = '';
@@ -960,7 +971,7 @@ wss.on('connection', (ws) => {
                 const textChunk = typeof chunk === 'string' ? chunk : (chunk.text || '');
                 if (textChunk) {
                     fullReply += textChunk;
-                    ws.send(textChunk);
+                    ws.send(JSON.stringify({ type: 'text', chunk: textChunk }));
                 }
             }
 

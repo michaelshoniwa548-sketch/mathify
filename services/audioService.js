@@ -109,56 +109,75 @@ function cleanTextForTTS(text) {
         .trim();
 }
 
+const https = require('https');
+
+function fetchGoogleTTS(text) {
+    return new Promise((resolve) => {
+        const clean = cleanTextForTTS(text).slice(0, 250);
+        if (!clean) return resolve(Buffer.alloc(0));
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(clean)}&tl=en`;
+        https.get(url, (res) => {
+            if (res.statusCode !== 200) return resolve(Buffer.alloc(0));
+            const chunks = [];
+            res.on('data', chunk => chunks.push(chunk));
+            res.on('end', () => resolve(Buffer.concat(chunks)));
+        }).on('error', () => resolve(Buffer.alloc(0)));
+    });
+}
+
 /**
- * Seam 2: Text-to-Speech (TTS) via Gemini Native Voice Generation Streaming (Fenrir Profile)
- * Synthesizes spoken audio from text using generateContentStream.
+ * Seam 2: Text-to-Speech (TTS) via Gemini Native Voice Generation (Fenrir Profile)
+ * Synthesizes spoken audio from text with Google Free TTS failover.
  * @param {string} text - Text to speak
- * @returns {Promise<Buffer>} Playable WAV Audio buffer
+ * @returns {Promise<Buffer>} Playable Audio buffer
  */
 async function synthesizeSpeech(text) {
-    if (!ai) throw new Error('GEMINI_API_KEY missing for TTS.');
     if (!text || !text.trim()) return Buffer.alloc(0);
 
-    try {
-        const cleanText = cleanTextForTTS(text);
-        if (!cleanText) return Buffer.alloc(0);
+    if (ai) {
+        try {
+            const cleanText = cleanTextForTTS(text);
+            if (!cleanText) return Buffer.alloc(0);
 
-        const responseStream = await ai.models.generateContentStream({
-            model: TTS_MODEL,
-            contents: cleanText,
-            config: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: {
-                            voiceName: 'Fenrir'
+            const responseStream = await ai.models.generateContentStream({
+                model: TTS_MODEL,
+                contents: cleanText,
+                config: {
+                    responseModalities: ['AUDIO'],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: {
+                                voiceName: 'Fenrir'
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        const pcmChunks = [];
-        for await (const chunk of responseStream) {
-            const candidateParts = chunk.candidates?.[0]?.content?.parts || [];
-            for (const part of candidateParts) {
-                if (part.inlineData && part.inlineData.data) {
-                    pcmChunks.push(Buffer.from(part.inlineData.data, 'base64'));
+            const pcmChunks = [];
+            for await (const chunk of responseStream) {
+                const candidateParts = chunk.candidates?.[0]?.content?.parts || [];
+                for (const part of candidateParts) {
+                    if (part.inlineData && part.inlineData.data) {
+                        pcmChunks.push(Buffer.from(part.inlineData.data, 'base64'));
+                    }
                 }
             }
-        }
 
-        if (pcmChunks.length > 0) {
-            const fullPcmBuffer = Buffer.concat(pcmChunks);
-            return pcmToWav(fullPcmBuffer, 24000, 1, 16);
-        }
+            if (pcmChunks.length > 0) {
+                const fullPcmBuffer = Buffer.concat(pcmChunks);
+                return pcmToWav(fullPcmBuffer, 24000, 1, 16);
+            }
 
-        console.warn('⚠️ [TTS Warning]: No audio part found in Gemini TTS stream.');
-        return Buffer.alloc(0);
-    } catch (err) {
-        console.error('⚠️ [TTS Error]:', err.message);
-        return Buffer.alloc(0);
+            console.warn('⚠️ [TTS Warning]: Gemini TTS empty, trying Google Free TTS failover...');
+            return await fetchGoogleTTS(text);
+        } catch (err) {
+            console.error('⚠️ [TTS Error]:', err.message, '--> Failover to Google Free TTS');
+            return await fetchGoogleTTS(text);
+        }
     }
+
+    return await fetchGoogleTTS(text);
 }
 
 module.exports = {
