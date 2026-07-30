@@ -595,7 +595,10 @@ app.post('/api/solve', async (req, res) => {
 // --- QUIZ GENERATION ENDPOINT ---
 app.post('/api/quiz/generate', async (req, res) => {
     try {
-        const { topics = ['Algebra'], difficulty = 'medium', count = 5 } = req.body;
+        let { topics = ['Algebra'], difficulty = 'medium', count = 5 } = req.body;
+        if (typeof topics === 'string') topics = [topics];
+        if (!Array.isArray(topics) || topics.length === 0) topics = ['Algebra'];
+        count = Math.min(Math.max(parseInt(count, 10) || 5, 1), 10);
         
         if (!ai) {
             return res.status(500).json({ error: 'Gemini API key is not configured.' });
@@ -617,33 +620,54 @@ Return ONLY valid JSON matching this exact structure, with no extra text:
             model: GEMINI_MODEL,
             contents: prompt,
             config: {
-                maxOutputTokens: 1000,
+                maxOutputTokens: 2048,
                 temperature: 0.7,
                 responseMimeType: 'application/json'
             }
         });
 
         const rawText = response.text || '';
+        if (!rawText.trim()) {
+            throw new Error('Empty response from AI model');
+        }
+
         let quizJson;
         try {
             const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
             quizJson = JSON.parse(cleanJson);
         } catch (parseErr) {
-            // Fix unescaped single backslashes in LaTeX strings
-            const fixedJson = rawText
-                .replace(/```json/g, '')
-                .replace(/```/g, '')
-                .trim()
-                .replace(/\\([a-zA-Z0-9_\{\}\(\)\[\]\+\-\*\/\=\<\>\!\,\.\:\;\@\#\$\%\^\&\~])/g, '\\\\$1')
-                .replace(/\\\\"/g, '\\"');
-            quizJson = JSON.parse(fixedJson);
+            try {
+                // Fix unescaped single backslashes in LaTeX strings
+                const fixedJson = rawText
+                    .replace(/```json/g, '')
+                    .replace(/```/g, '')
+                    .trim()
+                    .replace(/\\([a-zA-Z0-9_\{\}\(\)\[\]\+\-\*\/\=\<\>\!\,\.\:\;\@\#\$\%\^\&\~])/g, '\\\\$1')
+                    .replace(/\\\\"/g, '\\"');
+                quizJson = JSON.parse(fixedJson);
+            } catch (e2) {
+                // Last-resort regex fallback if JSON structure is slightly malformed
+                const questionsMatch = [...rawText.matchAll(/"question"\s*:\s*"([^"]+)"/g)].map((m, idx) => ({
+                    id: idx + 1,
+                    question: m[1].replace(/\\\\/g, '\\')
+                }));
+                if (questionsMatch.length > 0) {
+                    quizJson = { quiz: questionsMatch };
+                } else {
+                    throw new Error(`Failed to parse quiz response: ${parseErr.message}`);
+                }
+            }
         }
         
+        if (!quizJson || !Array.isArray(quizJson.quiz)) {
+            throw new Error('Invalid quiz format returned by model');
+        }
+
         res.json(quizJson);
 
     } catch (error) {
-        console.error('Quiz generation error:', error.message);
-        res.status(500).json({ error: error.message });
+        console.error('Quiz generation error:', error);
+        res.status(500).json({ error: error.message || 'Server error generating quiz' });
     }
 });
 
