@@ -601,7 +601,10 @@ app.post('/api/quiz/generate', async (req, res) => {
             return res.status(500).json({ error: 'Gemini API key is not configured.' });
         }
 
-        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz covering topics: ${topics.join(', ')}. Include ZIMSEC examination standard questions where appropriate. Use standard LaTeX notation formatted with $...$ for inline math and $$...$$ for display equations.
+        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz covering topics: ${topics.join(', ')}. Include ZIMSEC examination standard questions where appropriate.
+Format all math expressions using standard LaTeX notation ($...$ or $$...$$).
+CRITICAL FOR VALID JSON: Always double-escape every backslash in LaTeX commands (write \\\\frac, \\\\sqrt, \\\\alpha, \\\\theta, \\\\pi with double backslashes \\\\).
+
 Return ONLY valid JSON matching this exact structure, with no extra text:
 {
   "quiz": [
@@ -621,8 +624,20 @@ Return ONLY valid JSON matching this exact structure, with no extra text:
         });
 
         const rawText = response.text || '';
-        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const quizJson = JSON.parse(cleanJson);
+        let quizJson;
+        try {
+            const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            quizJson = JSON.parse(cleanJson);
+        } catch (parseErr) {
+            // Fix unescaped single backslashes in LaTeX strings
+            const fixedJson = rawText
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim()
+                .replace(/\\([a-zA-Z0-9_\{\}\(\)\[\]\+\-\*\/\=\<\>\!\,\.\:\;\@\#\$\%\^\&\~])/g, '\\\\$1')
+                .replace(/\\\\"/g, '\\"');
+            quizJson = JSON.parse(fixedJson);
+        }
         
         res.json(quizJson);
 
