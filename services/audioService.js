@@ -139,7 +139,7 @@ async function synthesizeSpeech(text) {
             const cleanText = cleanTextForTTS(text);
             if (!cleanText) return Buffer.alloc(0);
 
-            const responseStream = await ai.models.generateContentStream({
+            const response = await ai.models.generateContent({
                 model: TTS_MODEL,
                 contents: cleanText,
                 config: {
@@ -154,19 +154,12 @@ async function synthesizeSpeech(text) {
                 }
             });
 
-            const pcmChunks = [];
-            for await (const chunk of responseStream) {
-                const candidateParts = chunk.candidates?.[0]?.content?.parts || [];
-                for (const part of candidateParts) {
-                    if (part.inlineData && part.inlineData.data) {
-                        pcmChunks.push(Buffer.from(part.inlineData.data, 'base64'));
-                    }
+            const candidateParts = response.candidates?.[0]?.content?.parts || [];
+            for (const part of candidateParts) {
+                if (part.inlineData && part.inlineData.data) {
+                    const pcmBuffer = Buffer.from(part.inlineData.data, 'base64');
+                    return pcmToWav(pcmBuffer, 24000, 1, 16);
                 }
-            }
-
-            if (pcmChunks.length > 0) {
-                const fullPcmBuffer = Buffer.concat(pcmChunks);
-                return pcmToWav(fullPcmBuffer, 24000, 1, 16);
             }
 
             console.warn('⚠️ [TTS Warning]: Gemini TTS empty, trying Google Free TTS failover...');
