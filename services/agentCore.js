@@ -53,7 +53,10 @@ async function* chatWithModelStream(history = [], onToolCallNotice = null) {
         const model = genAI.getGenerativeModel({
             model: MODEL_NAME,
             systemInstruction: fullSystemInstruction,
-            tools: [{ functionDeclarations: toolsConfig }]
+            tools: [{ functionDeclarations: toolsConfig }],
+            generationConfig: {
+                maxOutputTokens: 2048
+            }
         });
 
         // Deep copy contents from history to manage function call / function response turns cleanly

@@ -428,11 +428,13 @@ function renderQuiz(questions, topic) {
         qDiv.className = 'quiz-question-card';
         qDiv.innerHTML = `
             <h4>Question ${index + 1}</h4>
-            <p>${q.question}</p>
+            <div class="quiz-question-text">${marked.parse(q.question)}</div>
             <input type="text" id="answer-${q.id}" placeholder="Your answer here..." class="mt-4">
         `;
         questionsContainer.appendChild(qDiv);
     });
+
+    renderMath(questionsContainer);
 }
 
 if (btnSubmitQuiz) {
@@ -489,10 +491,12 @@ if (btnSubmitQuiz) {
                 const chunk = decoder.decode(value, { stream: true });
                 accumulatedText += chunk;
                 quizFeedbackContainer.innerHTML = marked.parse(accumulatedText);
+                renderMath(quizFeedbackContainer);
                 if (stick) scrollToBottom(panelResults);
             }
 
             quizFeedbackContainer.classList.remove('streaming');
+            renderMath(quizFeedbackContainer);
 
         } catch (err) {
             quizFeedbackContainer.classList.remove('streaming');
@@ -750,6 +754,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (event.type === 'text') {
                         setVisualState('Thinking');
                         fullText += event.chunk;
+                        if (!assistantBubble) {
+                            assistantBubble = appendFeedMessage('assistant', fullText);
+                            assistantContent = assistantBubble ? assistantBubble.querySelector('.msg-content') : null;
+                        }
+                        if (assistantContent) {
+                            assistantContent.innerHTML = marked.parse(fullText);
+                            renderMath(assistantContent);
+                        }
+                        if (feed) feed.scrollTop = feed.scrollHeight;
 
                     } else if (event.type === 'audio' || (event.type === 'done' && event.audioBase64)) {
                         const audioData = event.audioBase64 || event.audio;

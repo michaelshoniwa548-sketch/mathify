@@ -122,7 +122,7 @@ app.use((req, res, next) => {
 });
 
 // 13. FAILOVER & STREAMING HELPER WITH GOOGLE SEARCH & RAG GROUNDING
-async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTokens = 1024, res, isSSE = false, enableGrounding = true }) {
+async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTokens = 2048, res, isSSE = false, enableGrounding = true }) {
     if (!ai) {
         throw new Error('Gemini API key is not configured.');
     }
@@ -499,7 +499,7 @@ app.get('/api/voice-stream', async (req, res) => {
     await streamGeminiHelper({
         prompt,
         systemInstruction: ZIMSEC_VOICE_PROMPT,
-        maxTokens: 140,
+        maxTokens: 1024,
         res,
         isSSE: true,
         enableGrounding: true
@@ -518,7 +518,7 @@ app.get('/api/stream', async (req, res) => {
     await streamGeminiHelper({
         prompt,
         systemInstruction: ZIMSEC_TEXT_PROMPT,
-        maxTokens: 400,
+        maxTokens: 2048,
         res,
         isSSE: true,
         enableGrounding: true
@@ -536,7 +536,7 @@ app.post('/api/voice-chat', async (req, res) => {
         await streamGeminiHelper({
             prompt: message,
             systemInstruction: ZIMSEC_VOICE_PROMPT,
-            maxTokens: 140,
+            maxTokens: 1024,
             res,
             isSSE: false,
             enableGrounding: true
@@ -558,7 +558,7 @@ app.post('/api/chat', async (req, res) => {
             prompt: message || '',
             systemInstruction: ZIMSEC_TEXT_PROMPT,
             attachment,
-            maxTokens: 1024,
+            maxTokens: 2048,
             res,
             isSSE: false,
             enableGrounding: true
@@ -582,7 +582,7 @@ app.post('/api/solve', async (req, res) => {
             prompt: problem || '',
             systemInstruction,
             attachment,
-            maxTokens: 1024,
+            maxTokens: 3072,
             res,
             isSSE: false,
             enableGrounding: true
@@ -601,7 +601,7 @@ app.post('/api/quiz/generate', async (req, res) => {
             return res.status(500).json({ error: 'Gemini API key is not configured.' });
         }
 
-        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz covering topics: ${topics.join(', ')}. Include ZIMSEC examination standard questions where appropriate.
+        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz covering topics: ${topics.join(', ')}. Include ZIMSEC examination standard questions where appropriate. Use standard LaTeX notation formatted with $...$ for inline math and $$...$$ for display equations.
 Return ONLY valid JSON matching this exact structure, with no extra text:
 {
   "quiz": [
@@ -640,7 +640,7 @@ app.post('/api/quiz/evaluate', async (req, res) => {
             return res.status(400).json({ error: 'Questions and userAnswers are required' });
         }
 
-        const prompt = `Evaluate the following math quiz submission step-by-step:
+        const prompt = `Evaluate the following math quiz submission step-by-step. Format all mathematical expressions and formulas using standard LaTeX ($...$ or $$...$$):
 Questions and Student Answers:
 ${questions.map(q => `Q${q.id}: ${q.question}\nStudent Answer: ${userAnswers[q.id] || '(No Answer)'}`).join('\n\n')}
 

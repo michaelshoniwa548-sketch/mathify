@@ -18,7 +18,7 @@ if (GEMINI_API_KEY) {
 // Pre-cached system prompt objects
 const CACHED_MODELS = new Map();
 
-function getModelInstance(systemInstruction = '', jsonMode = false, maxOutputTokens = 150) {
+function getModelInstance(systemInstruction = '', jsonMode = false, maxOutputTokens = 2048) {
     if (!geminiClient) {
         throw new Error('Gemini API client not initialized.');
     }
@@ -56,7 +56,7 @@ function getProviderInfo() {
 }
 
 // High-speed stream with single failover attempt
-async function streamResponse(prompt, systemInstruction = '', res = null, maxOutputTokens = 150) {
+async function streamResponse(prompt, systemInstruction = '', res = null, maxOutputTokens = 2048) {
     const model = getModelInstance(systemInstruction, false, maxOutputTokens);
     
     // Attempt 1: Stream
@@ -95,7 +95,7 @@ async function streamResponse(prompt, systemInstruction = '', res = null, maxOut
     }
 }
 
-async function generateResponseNonStream(prompt, systemInstruction = '', forceJson = false, maxOutputTokens = 150) {
+async function generateResponseNonStream(prompt, systemInstruction = '', forceJson = false, maxOutputTokens = 2048) {
     const model = getModelInstance(systemInstruction, forceJson, maxOutputTokens);
     try {
         const result = await model.generateContent(prompt);
