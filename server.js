@@ -604,8 +604,8 @@ app.post('/api/quiz/generate', async (req, res) => {
             return res.status(500).json({ error: 'Gemini API key is not configured.' });
         }
 
-        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz covering topics: ${topics.join(', ')}. Include ZIMSEC examination standard questions where appropriate.
-Format all math expressions using standard LaTeX notation ($...$ or $$...$$).
+        const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz specifically tailored for ZIMSEC O-Level Mathematics (Syllabus 4075 / Form 1 to Form 4 curriculum) covering topics: ${topics.join(', ')}. Focus strictly on ZIMSEC O-Level examination standard questions (do NOT generate A-Level calculus or tertiary mathematics).
+CRITICAL FOR KATEX RENDERING: Enclose EVERY single math expression, fraction, equation, power, or variable inside KaTeX delimiters ($...$ for inline math or $$...$$ for display equations) so that KaTeX renders all math cleanly.
 CRITICAL FOR VALID JSON: Always double-escape every backslash in LaTeX commands (write \\\\frac, \\\\sqrt, \\\\alpha, \\\\theta, \\\\pi with double backslashes \\\\).
 
 Return ONLY valid JSON matching this exact structure, with no extra text:
