@@ -679,14 +679,19 @@ app.post('/api/quiz/evaluate', async (req, res) => {
             return res.status(400).json({ error: 'Questions and userAnswers are required' });
         }
 
-        const prompt = `Evaluate the following math quiz submission step-by-step. Format all mathematical expressions and formulas using standard LaTeX ($...$ or $$...$$):
+        const prompt = `Evaluate the following ZIMSEC O-Level math quiz submission step-by-step. Format all mathematical expressions and formulas using standard LaTeX ($...$ or $$...$$):
 Questions and Student Answers:
 ${questions.map(q => `Q${q.id}: ${q.question}\nStudent Answer: ${userAnswers[q.id] || '(No Answer)'}`).join('\n\n')}
 
-Provide:
-1. Overall Score (e.g. 4/5) and ZIMSEC Grade classification.
-2. Step-by-step feedback for each question showing correct answer, working, and marks awarded.
-3. Brief study encouragement.`;
+CRITICAL INSTRUCTIONS:
+1. Provide Overall Score (e.g. 5/5) and official ZIMSEC Grade classification (e.g. Grade A, Grade B).
+2. Evaluate EVERY SINGLE question completely without skipping, abbreviating, or truncating.
+3. For EACH question, show:
+   - Full step-by-step mathematical working & solution.
+   - Correct final answer.
+   - Student's performance check.
+   - "Marks Awarded: X/Y" (ensure correct English spelling "Marks Awarded").
+4. Brief encouraging study guidance.`;
 
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Transfer-Encoding', 'chunked');
@@ -694,7 +699,7 @@ Provide:
         await streamGeminiHelper({
             prompt,
             systemInstruction: ZIMSEC_TEXT_PROMPT,
-            maxTokens: 800,
+            maxTokens: 4096,
             res,
             isSSE: false,
             enableGrounding: true
