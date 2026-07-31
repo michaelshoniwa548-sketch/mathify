@@ -122,7 +122,7 @@ app.use((req, res, next) => {
 });
 
 // 13. FAILOVER & STREAMING HELPER WITH GOOGLE SEARCH & RAG GROUNDING
-async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTokens = 2048, res, isSSE = false, enableGrounding = true }) {
+async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTokens = 2048, res, isSSE = false, enableGrounding = true, autoEnd = true }) {
     if (!ai) {
         throw new Error('Gemini API key is not configured.');
     }
@@ -193,7 +193,7 @@ async function streamGeminiHelper({ prompt, systemInstruction, attachment, maxTo
         if (isSSE && !res.writableEnded) {
             res.write(`data: ${JSON.stringify({ done: true, sources: groundingSources })}\n\n`);
         }
-        if (!res.writableEnded) res.end();
+        if (autoEnd && !res.writableEnded) res.end();
 
         setImmediate(() => {
             conversationHistory.push({ role: 'user', parts: [{ text: prompt }] });
@@ -675,38 +675,59 @@ Return ONLY valid JSON matching this exact structure, with no extra text:
 app.post('/api/quiz/evaluate', async (req, res) => {
     try {
         const { questions, userAnswers } = req.body;
-        if (!questions || !userAnswers) {
+        if (!questions || !Array.isArray(questions) || questions.length === 0 || !userAnswers) {
             return res.status(400).json({ error: 'Questions and userAnswers are required' });
         }
-
-        const prompt = `Evaluate the following ZIMSEC O-Level math quiz submission step-by-step. Format all mathematical expressions and formulas using standard LaTeX ($...$ or $$...$$):
-Questions and Student Answers:
-${questions.map(q => `Q${q.id}: ${q.question}\nStudent Answer: ${userAnswers[q.id] || '(No Answer)'}`).join('\n\n')}
-
-CRITICAL INSTRUCTIONS:
-1. Provide Overall Score (e.g. 5/5) and official ZIMSEC Grade classification (e.g. Grade A, Grade B).
-2. Evaluate EVERY SINGLE question completely without skipping, abbreviating, or truncating.
-3. For EACH question, show:
-   - Full step-by-step mathematical working & solution.
-   - Correct final answer.
-   - Student's performance check.
-   - "Marks Awarded: X/Y" (ensure correct English spelling "Marks Awarded").
-4. Brief encouraging study guidance.`;
 
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Transfer-Encoding', 'chunked');
 
-        await streamGeminiHelper({
-            prompt,
-            systemInstruction: ZIMSEC_TEXT_PROMPT,
-            maxTokens: 4096,
-            res,
-            isSSE: false,
-            enableGrounding: true
-        });
+        // Evaluate in batches of 8 questions to guarantee that 30-question quizzes NEVER truncate
+        const BATCH_SIZE = 8;
+        const totalQuestions = questions.length;
+
+        if (totalQuestions > BATCH_SIZE) {
+            res.write(`### **ZIMSEC O-Level Math Quiz Evaluation (${totalQuestions} Questions)**\n\n`);
+        }
+
+        for (let i = 0; i < totalQuestions; i += BATCH_SIZE) {
+            const batch = questions.slice(i, i + BATCH_SIZE);
+            const isFirstBatch = (i === 0);
+            const isLastBatch = (i + BATCH_SIZE >= totalQuestions);
+
+            const prompt = `Evaluate the following ZIMSEC O-Level math quiz submission (Questions ${i + 1} to ${Math.min(i + BATCH_SIZE, totalQuestions)} of ${totalQuestions}). Format all mathematical expressions using standard LaTeX ($...$ or $$...$$):
+
+Questions and Student Answers:
+${batch.map(q => `Q${q.id}: ${q.question}\nStudent Answer: ${userAnswers[q.id] || '(No Answer)'}`).join('\n\n')}
+
+CRITICAL INSTRUCTIONS:
+${isFirstBatch ? '1. Start with an Overall Estimated Score summary and ZIMSEC Grade classification (e.g. Grade A, Grade B).\n2.' : '1.'} Evaluate EVERY SINGLE question in this batch (Q${i + 1} to Q${Math.min(i + BATCH_SIZE, totalQuestions)}) completely without skipping any question.
+${isFirstBatch ? '3.' : '2.'} For EACH question, show:
+   - Full step-by-step mathematical working & solution.
+   - Correct final answer.
+   - Student's performance check.
+   - "Marks Awarded: X/Y" (ensure correct English spelling "Marks Awarded").
+${isLastBatch ? '\nInclude a brief encouraging study guidance summary.' : ''}`;
+
+            await streamGeminiHelper({
+                prompt,
+                systemInstruction: ZIMSEC_TEXT_PROMPT,
+                maxTokens: 4096,
+                res,
+                isSSE: false,
+                enableGrounding: false,
+                autoEnd: false
+            });
+
+            res.write('\n\n---\n\n');
+        }
+
+        res.end();
 
     } catch (error) {
+        console.error('Quiz evaluation error:', error);
         if (!res.headersSent) res.status(500).json({ error: error.message });
+        else res.end();
     }
 });
 
