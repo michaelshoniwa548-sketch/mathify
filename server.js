@@ -698,7 +698,7 @@ app.post('/api/quiz/evaluate', async (req, res) => {
             const isFirstBatch = (i === 0);
             const isLastBatch = (i + BATCH_SIZE >= totalQuestions);
 
-            const prompt = `Evaluate the following ZIMSEC O-Level math quiz submission (Questions ${i + 1} to ${Math.min(i + BATCH_SIZE, totalQuestions)} of ${totalQuestions}). Format all mathematical expressions using standard LaTeX ($...$ or $$...$$):
+            const prompt = `Evaluate the following ZIMSEC O-Level math quiz submission (Questions ${i + 1} to ${Math.min(i + BATCH_SIZE, totalQuestions)} of ${totalQuestions}). Format all mathematical expressions using standard KaTeX ($...$ or $$...$$):
 
 Questions and Student Answers:
 ${batch.map(q => `Q${q.id}: ${q.question}\nStudent Answer: ${userAnswers[q.id] || '(No Answer)'}`).join('\n\n')}
@@ -710,6 +710,8 @@ ${isFirstBatch ? '3.' : '2.'} For EACH question, show:
    - Correct final answer.
    - Student's performance check.
    - "Marks Awarded: X/Y" (ensure correct English spelling "Marks Awarded").
+- DO NOT output raw HTML tags (like <ol>, <li>, <ul>, <p>). Use ONLY standard Markdown text formatting.
+- NEVER wrap full English prose inside $...$ delimiters. ONLY wrap isolated math equations and variables inside $...$.
 ${isLastBatch ? '\nInclude a brief encouraging study guidance summary.' : ''}`;
 
             await streamGeminiHelper({

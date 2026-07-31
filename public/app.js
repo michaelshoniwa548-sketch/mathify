@@ -69,10 +69,22 @@ function formatPureKaTeX(text) {
     if (!text || typeof text !== 'string') return '';
     let processed = text;
 
-    // Protect currency dollar signs (e.g. $160, $5.50) so they aren't parsed as math delimiters
-    processed = processed.replace(/\$(\d+(?:\.\d+)?)\b/g, '&#36;$1');
+    // 1. Un-escape double-encoded HTML entities
+    processed = processed
+        .replace(/&amp;#36;/g, '$')
+        .replace(/&#36;/g, '$')
+        .replace(/&amp;lt;/g, '<')
+        .replace(/&amp;gt;/g, '>')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
 
-    // Unwrap accidental $...$ blocks that enclose regular English sentences
+    // 2. Strip raw HTML list tags outputted by Gemini (e.g. <ol>, <li>, <ul>, </ol>, </li>, </ul>)
+    processed = processed.replace(/<\/?(ol|ul|li|p|div|span)[^>]*>/gi, '\n');
+
+    // 3. Fix unclosed single $ delimiters around single numbers or variables (e.g. $3, $0, $6)
+    processed = processed.replace(/\$([0-9a-zA-Z\+\-\*\/]+)(?=\s|[\,\.\:\;\!\?]|$)(?!\$)/g, '$$$1$$');
+
+    // 4. Unwrap accidental $...$ blocks that enclose regular English sentences
     processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
         if (/\b[a-zA-Z]{2,}\s+[a-zA-Z]{2,}\s+[a-zA-Z]{2,}\b/.test(expr)) {
             return expr.replace(/\b([a-zA-Z0-9_\+\-\*\/\=\(\)\{\}\^]+)\b/g, (m) => {
