@@ -605,7 +605,10 @@ app.post('/api/quiz/generate', async (req, res) => {
         }
 
         const prompt = `Generate a ${count}-question ${difficulty} difficulty mathematics quiz specifically tailored for ZIMSEC O-Level Mathematics (Syllabus 4075 / Form 1 to Form 4 curriculum) covering topics: ${topics.join(', ')}. Focus strictly on ZIMSEC O-Level examination standard questions (do NOT generate A-Level calculus or tertiary mathematics).
-CRITICAL FOR KATEX RENDERING: Enclose EVERY single math expression, fraction, equation, power, or variable inside KaTeX delimiters ($...$ for inline math or $$...$$ for display equations) so that KaTeX renders all math cleanly. Ensure all opening '$$' or '$' delimiters and '{' braces are strictly closed.
+CRITICAL FOR KATEX RENDERING: 
+- Enclose isolated math expressions, fractions, equations, powers, or variables inside KaTeX delimiters ($...$ for inline math or $$...$$ for display equations).
+- NEVER wrap full English sentences or prose inside $...$ delimiters. ONLY wrap math variables and expressions (e.g. write "A motorist travels $120\\text{ km}$ at $x\\text{ km/h}$", NOT "$120km at an average speed of x km/h$").
+- Ensure all opening '$$' or '$' delimiters and '{' braces are strictly closed.
 CRITICAL FOR VALID JSON: Always double-escape every backslash in LaTeX commands (write \\\\frac, \\\\sqrt, \\\\alpha, \\\\theta, \\\\pi with double backslashes \\\\).
 
 Return ONLY valid JSON matching this exact structure, with no extra text:

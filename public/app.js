@@ -72,6 +72,19 @@ function formatPureKaTeX(text) {
     // Protect currency dollar signs (e.g. $160, $5.50) so they aren't parsed as math delimiters
     processed = processed.replace(/\$(\d+(?:\.\d+)?)\b/g, '&#36;$1');
 
+    // Unwrap accidental $...$ blocks that enclose regular English sentences
+    processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
+        if (/\b[a-zA-Z]{2,}\s+[a-zA-Z]{2,}\s+[a-zA-Z]{2,}\b/.test(expr)) {
+            return expr.replace(/\b([a-zA-Z0-9_\+\-\*\/\=\(\)\{\}\^]+)\b/g, (m) => {
+                if (/^(?:[a-zA-Z]|[0-9]+[a-zA-Z]+|\(?[xYzabc0-9\+\-\*\/\^]+\)?)$/.test(m)) {
+                    return `$${m}$`;
+                }
+                return m;
+            });
+        }
+        return match;
+    });
+
     // Auto-fix unclosed $$ display math blocks
     const countDisplayDelims = (processed.match(/\$\$/g) || []).length;
     if (countDisplayDelims % 2 !== 0) {
@@ -108,7 +121,8 @@ function formatPureKaTeX(text) {
         // Render display math $$ ... $$
         html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, expr) => {
             try {
-                return window.katex.renderToString(expr.trim(), { displayMode: true, output: 'html', throwOnError: false });
+                const res = window.katex.renderToString(expr.trim(), { displayMode: true, output: 'html', throwOnError: false });
+                return res.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
             } catch (e) {
                 return match;
             }
@@ -117,7 +131,8 @@ function formatPureKaTeX(text) {
         // Render inline math $ ... $
         html = html.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
             try {
-                return window.katex.renderToString(expr.trim(), { displayMode: false, output: 'html', throwOnError: false });
+                const res = window.katex.renderToString(expr.trim(), { displayMode: false, output: 'html', throwOnError: false });
+                return res.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
             } catch (e) {
                 return match;
             }
@@ -126,7 +141,8 @@ function formatPureKaTeX(text) {
         // Render bare un-delimited LaTeX commands (\frac, \sqrt, \theta, \pi, etc.)
         html = html.replace(/\\(frac|sqrt|times|div|pm|alpha|beta|theta|pi|int|sum|vec|le|ge|neq|approx)(\{[^}]+\})+/g, (match) => {
             try {
-                return window.katex.renderToString(match, { displayMode: false, output: 'html', throwOnError: false });
+                const res = window.katex.renderToString(match, { displayMode: false, output: 'html', throwOnError: false });
+                return res.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
             } catch (e) {
                 return match;
             }
@@ -143,6 +159,9 @@ function formatPureKaTeX(text) {
         .replace(/\\alpha/g, 'α')
         .replace(/\\beta/g, 'β')
         .replace(/\\sqrt/g, '√');
+
+    // Strip any residual red error spans if generated anywhere
+    html = html.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
 
     return html;
 }
