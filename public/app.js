@@ -161,16 +161,29 @@ function formatPureKaTeX(text) {
         });
     }
 
-    // Clean up any remaining loose LaTeX backslash commands
+    // Ultimate Raw LaTeX Fallback Scrubber: Convert any unrendered LaTeX into clean math text and strip all backslashes
     html = html
-        .replace(/\\times/g, '×')
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+        .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+        .replace(/\\text\{([^}]+)\}/g, '$1')
+        .replace(/\\left\(|\\right\)/g, (m) => m.includes('left') ? '(' : ')')
+        .replace(/\\left\[|\\right\]/g, (m) => m.includes('left') ? '[' : ']')
+        .replace(/\\times|\\cdot/g, '×')
         .replace(/\\div/g, '÷')
         .replace(/\\pm/g, '±')
-        .replace(/\\theta/g, 'θ')
-        .replace(/\\pi/g, 'π')
+        .replace(/\\leq|\\le/g, '≤')
+        .replace(/\\geq|\\ge/g, '≥')
+        .replace(/\\neq/g, '≠')
+        .replace(/\\approx/g, '≈')
         .replace(/\\alpha/g, 'α')
         .replace(/\\beta/g, 'β')
-        .replace(/\\sqrt/g, '√');
+        .replace(/\\theta/g, 'θ')
+        .replace(/\\pi/g, 'π')
+        .replace(/\\infty/g, '∞')
+        .replace(/\\quad|\\qquad/g, ' ')
+        .replace(/\\begin\{[^}]+\}|\\end\{[^}]+\}/g, '')
+        .replace(/\\([a-zA-Z]+)/g, '$1')
+        .replace(/\\/g, '');
 
     // Strip any residual red error spans if generated anywhere
     html = html.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
