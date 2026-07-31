@@ -64,6 +64,61 @@ function renderMath(element) {
         console.warn('[KaTeX Render Warning]:', e.message);
     }
 }
+
+function formatPureKaTeX(text) {
+    if (!text || typeof text !== 'string') return '';
+    let processed = text;
+
+    if (window.katex) {
+        // 1. Render display math $$ ... $$
+        processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, expr) => {
+            try {
+                return window.katex.renderToString(expr.trim(), { displayMode: true, output: 'html', throwOnError: false });
+            } catch (e) {
+                return match;
+            }
+        });
+
+        // 2. Render inline math $ ... $
+        processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
+            try {
+                return window.katex.renderToString(expr.trim(), { displayMode: false, output: 'html', throwOnError: false });
+            } catch (e) {
+                return match;
+            }
+        });
+
+        // 3. Catch any bare un-delimited LaTeX commands (\frac, \sqrt, \theta, \pi, etc.)
+        processed = processed.replace(/\\(frac|sqrt|times|div|pm|alpha|beta|theta|pi|int|sum|vec|le|ge|neq|approx)(\{[^}]+\})+/g, (match) => {
+            try {
+                return window.katex.renderToString(match, { displayMode: false, output: 'html', throwOnError: false });
+            } catch (e) {
+                return match;
+            }
+        });
+    }
+
+    // Clean up any remaining loose LaTeX commands
+    processed = processed
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\pm/g, '±')
+        .replace(/\\theta/g, 'θ')
+        .replace(/\\pi/g, 'π')
+        .replace(/\\alpha/g, 'α')
+        .replace(/\\beta/g, 'β')
+        .replace(/\\sqrt/g, '√');
+
+    if (window.marked) {
+        try {
+            return window.marked.parse(processed);
+        } catch(e) {
+            return processed;
+        }
+    }
+
+    return processed;
+}
 function showLoading(show) {
     if (show) {
         loadingOverlay.classList.remove('hidden');
@@ -420,15 +475,16 @@ if (btnGenerateQuiz) {
 
 function renderQuiz(questions, topic) {
     if (!questionsContainer) return;
-    activeQuizTitle.textContent = `Quiz: ${topic}`;
+    activeQuizTitle.textContent = `ZIMSEC O-Level Quiz: ${topic}`;
     questionsContainer.innerHTML = '';
 
     questions.forEach((q, index) => {
         const qDiv = document.createElement('div');
         qDiv.className = 'quiz-question-card';
+        const formattedQuestion = formatPureKaTeX(q.question);
         qDiv.innerHTML = `
             <h4>Question ${index + 1}</h4>
-            <div class="quiz-question-text">${marked.parse(q.question)}</div>
+            <div class="quiz-question-text">${formattedQuestion}</div>
             <input type="text" id="answer-${q.id}" placeholder="Your answer here..." class="mt-4">
         `;
         questionsContainer.appendChild(qDiv);
@@ -490,7 +546,7 @@ if (btnSubmitQuiz) {
                 const stick = isNearBottom(panelResults);
                 const chunk = decoder.decode(value, { stream: true });
                 accumulatedText += chunk;
-                quizFeedbackContainer.innerHTML = marked.parse(accumulatedText);
+                quizFeedbackContainer.innerHTML = formatPureKaTeX(accumulatedText);
                 renderMath(quizFeedbackContainer);
                 if (stick) scrollToBottom(panelResults);
             }
