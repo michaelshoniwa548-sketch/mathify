@@ -598,7 +598,7 @@ app.post('/api/quiz/generate', async (req, res) => {
         let { topics = ['Algebra'], difficulty = 'medium', count = 5 } = req.body;
         if (typeof topics === 'string') topics = [topics];
         if (!Array.isArray(topics) || topics.length === 0) topics = ['Algebra'];
-        count = Math.min(Math.max(parseInt(count, 10) || 5, 1), 25);
+        count = Math.min(Math.max(parseInt(count, 10) || 5, 1), 30);
         
         if (!ai) {
             return res.status(500).json({ error: 'Gemini API key is not configured.' });
