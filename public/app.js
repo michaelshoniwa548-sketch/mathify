@@ -69,6 +69,26 @@ function formatPureKaTeX(text) {
     if (!text || typeof text !== 'string') return '';
     let processed = text;
 
+    // Auto-fix unclosed $$ display math blocks
+    const countDisplayDelims = (processed.match(/\$\$/g) || []).length;
+    if (countDisplayDelims % 2 !== 0) {
+        processed += '$$';
+    }
+
+    // Auto-fix unclosed $ inline math blocks
+    const sansDisplay = processed.replace(/\$\$/g, '');
+    const countInlineDelims = (sansDisplay.match(/\$/g) || []).length;
+    if (countInlineDelims % 2 !== 0) {
+        processed += '$';
+    }
+
+    // Auto-close missing braces in \frac{num}{den} if truncated
+    const openBraces = (processed.match(/\{/g) || []).length;
+    const closeBraces = (processed.match(/\}/g) || []).length;
+    if (openBraces > closeBraces) {
+        processed += '}'.repeat(openBraces - closeBraces);
+    }
+
     if (window.katex) {
         // 1. Render display math $$ ... $$
         processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, expr) => {
