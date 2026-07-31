@@ -69,6 +69,9 @@ function formatPureKaTeX(text) {
     if (!text || typeof text !== 'string') return '';
     let processed = text;
 
+    // Protect currency dollar signs (e.g. $160, $5.50) so they aren't parsed as math delimiters
+    processed = processed.replace(/\$(\d+(?:\.\d+)?)\b/g, '&#36;$1');
+
     // Auto-fix unclosed $$ display math blocks
     const countDisplayDelims = (processed.match(/\$\$/g) || []).length;
     if (countDisplayDelims % 2 !== 0) {
@@ -89,9 +92,21 @@ function formatPureKaTeX(text) {
         processed += '}'.repeat(openBraces - closeBraces);
     }
 
+    // Clean bare \text{x} or \text{(x-1)} into $x$ or $(x-1)$ BEFORE parsing
+    processed = processed.replace(/\\text\{([^}]+)\}/g, '$$$1$$');
+
+    // 1. Run markdown parsing FIRST so marked does NOT mangle rendered KaTeX HTML spans
+    let html = processed;
+    if (window.marked) {
+        try {
+            html = window.marked.parse(html);
+        } catch (e) {}
+    }
+
+    // 2. Run KaTeX rendering SECOND on the HTML content
     if (window.katex) {
-        // 1. Render display math $$ ... $$
-        processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, expr) => {
+        // Render display math $$ ... $$
+        html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, expr) => {
             try {
                 return window.katex.renderToString(expr.trim(), { displayMode: true, output: 'html', throwOnError: false });
             } catch (e) {
@@ -99,8 +114,8 @@ function formatPureKaTeX(text) {
             }
         });
 
-        // 2. Render inline math $ ... $
-        processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
+        // Render inline math $ ... $
+        html = html.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
             try {
                 return window.katex.renderToString(expr.trim(), { displayMode: false, output: 'html', throwOnError: false });
             } catch (e) {
@@ -108,8 +123,8 @@ function formatPureKaTeX(text) {
             }
         });
 
-        // 3. Catch any bare un-delimited LaTeX commands (\frac, \sqrt, \theta, \pi, etc.)
-        processed = processed.replace(/\\(frac|sqrt|times|div|pm|alpha|beta|theta|pi|int|sum|vec|le|ge|neq|approx)(\{[^}]+\})+/g, (match) => {
+        // Render bare un-delimited LaTeX commands (\frac, \sqrt, \theta, \pi, etc.)
+        html = html.replace(/\\(frac|sqrt|times|div|pm|alpha|beta|theta|pi|int|sum|vec|le|ge|neq|approx)(\{[^}]+\})+/g, (match) => {
             try {
                 return window.katex.renderToString(match, { displayMode: false, output: 'html', throwOnError: false });
             } catch (e) {
@@ -118,8 +133,8 @@ function formatPureKaTeX(text) {
         });
     }
 
-    // Clean up any remaining loose LaTeX commands
-    processed = processed
+    // Clean up any remaining loose LaTeX backslash commands
+    html = html
         .replace(/\\times/g, '×')
         .replace(/\\div/g, '÷')
         .replace(/\\pm/g, '±')
@@ -129,15 +144,7 @@ function formatPureKaTeX(text) {
         .replace(/\\beta/g, 'β')
         .replace(/\\sqrt/g, '√');
 
-    if (window.marked) {
-        try {
-            return window.marked.parse(processed);
-        } catch(e) {
-            return processed;
-        }
-    }
-
-    return processed;
+    return html;
 }
 function showLoading(show) {
     if (show) {
