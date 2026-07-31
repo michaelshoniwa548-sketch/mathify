@@ -143,7 +143,14 @@ function formatPureKaTeX(text) {
         // Render inline math $ ... $
         html = html.replace(/\$([^\$\n]+?)\$/g, (match, expr) => {
             try {
-                const res = window.katex.renderToString(expr.trim(), { displayMode: false, output: 'html', throwOnError: false });
+                // Ensure multi-letter English words inside math mode are wrapped in \text{...} so letters are not squeezed tightly as multiplication variables
+                const formattedExpr = expr.replace(/\b([a-zA-Z]{2,})\b/g, (word) => {
+                    if (/^(frac|sqrt|times|div|pm|alpha|beta|theta|pi|le|ge|neq|approx|text|cdot|infty|int|sum|vec)$/.test(word)) {
+                        return word;
+                    }
+                    return `\\text{${word}}`;
+                });
+                const res = window.katex.renderToString(formattedExpr.trim(), { displayMode: false, output: 'html', throwOnError: false });
                 return res.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/g, '$1');
             } catch (e) {
                 return match;
